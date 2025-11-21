@@ -22,39 +22,36 @@ void SeplosParser::setup() {
        &cell_11_, &cell_12_, &cell_13_, &cell_14_, &cell_15_, &cell_16_,
        &cell_temp_1_, &cell_temp_2_, &cell_temp_3_, &cell_temp_4_,
        &case_temp_, &power_temp_
-    };
+   };
 
-    for (auto *vec : sensor_vectors) {
-        vec->resize(bms_count_, nullptr);
-    }
+   for (auto *vec : sensor_vectors) {
+       vec->resize(bms_count_, nullptr);
+   }
 
-    std::vector<std::vector<text_sensor::TextSensor *> *> text_sensor_vectors = {
-        &system_status_, &active_balancing_cells_, &cell_temperature_alarms_,
-        &cell_voltage_alarms_, &FET_status_, &active_alarms_,
-        &active_protections_
-    };
+   std::vector<std::vector<text_sensor::TextSensor *> *> text_sensor_vectors = {
+       &system_status_, &active_balancing_cells_, &cell_temperature_alarms_,
+       &cell_voltage_alarms_, &FET_status_, &active_alarms_, &active_protections_
+   };
 
-    for (auto *vec : text_sensor_vectors) {
-        vec->resize(bms_count_, nullptr);
-    }
+   for (auto *vec : text_sensor_vectors) {
+       vec->resize(bms_count_, nullptr);
+   }
 
-    last_updates_.resize(bms_count_, 0);
-
+   // Zuordnung der Sensornamen zu den jeweiligen Vektoren
    std::unordered_map<std::string, std::vector<sensor::Sensor *> *> sensor_map = {
        {"pack_voltage", &pack_voltage_}, {"current", &current_},
        {"remaining_capacity", &remaining_capacity_}, {"total_capacity", &total_capacity_},
        {"total_discharge_capacity", &total_discharge_capacity_}, {"soc", &soc_},
-       {"soh", &soh_}, {"cycle_count", &cycle_count_},
-       {"average_cell_voltage", &average_cell_voltage_}, {"average_cell_temp", &average_cell_temp_},
-       {"max_cell_voltage", &max_cell_voltage_}, {"min_cell_voltage", &min_cell_voltage_},
-       {"max_cell_temp", &max_cell_temp_}, {"min_cell_temp", &min_cell_temp_},
-       {"maxdiscurt", &maxdiscurt_}, {"maxchgcurt", &maxchgcurt_},
-       {"cell_1", &cell_1_}, {"cell_2", &cell_2_}, {"cell_3", &cell_3_},
-       {"cell_4", &cell_4_}, {"cell_5", &cell_5_}, {"cell_6", &cell_6_},
-       {"cell_7", &cell_7_}, {"cell_8", &cell_8_}, {"cell_9", &cell_9_},
-       {"cell_10", &cell_10_}, {"cell_11", &cell_11_}, {"cell_12", &cell_12_},
-       {"cell_13", &cell_13_}, {"cell_14", &cell_14_}, {"cell_15", &cell_15_},
-       {"cell_16", &cell_16_}, {"cell_temp_1", &cell_temp_1_},
+       {"soh", &soh_}, {"cycle_count", &cycle_count_}, {"average_cell_voltage", &average_cell_voltage_},
+       {"average_cell_temp", &average_cell_temp_}, {"max_cell_voltage", &max_cell_voltage_},
+       {"min_cell_voltage", &min_cell_voltage_}, {"max_cell_temp", &max_cell_temp_},
+       {"min_cell_temp", &min_cell_temp_}, {"maxdiscurt", &maxdiscurt_},
+       {"maxchgcurt", &maxchgcurt_}, {"cell_1", &cell_1_}, {"cell_2", &cell_2_},
+       {"cell_3", &cell_3_}, {"cell_4", &cell_4_}, {"cell_5", &cell_5_},
+       {"cell_6", &cell_6_}, {"cell_7", &cell_7_}, {"cell_8", &cell_8_},
+       {"cell_9", &cell_9_}, {"cell_10", &cell_10_}, {"cell_11", &cell_11_},
+       {"cell_12", &cell_12_}, {"cell_13", &cell_13_}, {"cell_14", &cell_14_},
+       {"cell_15", &cell_15_}, {"cell_16", &cell_16_}, {"cell_temp_1", &cell_temp_1_},
        {"cell_temp_2", &cell_temp_2_}, {"cell_temp_3", &cell_temp_3_},
        {"cell_temp_4", &cell_temp_4_}, {"case_temp", &case_temp_},
        {"power_temp", &power_temp_}
@@ -114,20 +111,17 @@ void SeplosParser::loop() {
         continue;
       }
 
-      const size_t expected_length = get_expected_length();
-      if (expected_length == 0) {
-        buffer.pop_front();
-        continue;
-      }
-
+      size_t expected_length = get_expected_length();
       if (buffer.size() >= expected_length) {
         if (validate_crc(expected_length)) {
           process_packet(expected_length);
-        } else {
-          ESP_LOGW("seplos", "Ungültige CRC");
+          //buffer.clear();
+          buffer.erase(buffer.begin(), buffer.begin() + expected_length);
+          return;  // Nach dem Verarbeiten eines Pakets direkt aus der loop() aussteigen
+        } 
+        else {
+          buffer.pop_front();
         }
-
-        buffer.clear();
       }
     }
   }
@@ -144,7 +138,6 @@ size_t SeplosParser::get_expected_length() {
   if (buffer[1] == 0x01 && buffer[2] == 0x12) {return 23;} // (0x12) 18+5=23
   return 0; // If an invalid packet arrives
 }
-
 bool SeplosParser::validate_crc(size_t length) {
   uint16_t received_crc = (buffer[length - 1] << 8) | buffer[length - 2];
   uint16_t calculated_crc = calculate_modbus_crc(buffer, length - 2);
@@ -178,48 +171,38 @@ void SeplosParser::process_packet(size_t length) {
     return;
   }
 
-  // Masken für die Diagnoseparameter
-  bool diagnose_0x24 = (buffer[1] & 0x04) && (buffer[2] == 0x24);
-  bool diagnose_0x12 = (buffer[1] & 0x01) && (buffer[2] == 0x12);
-  bool diagnose_0x34 = (buffer[1] & 0x04) && (buffer[2] == 0x34);
+  if (buffer[2] == 0x24) {  // 36-Byte-Paket
+    //ESP_LOGI("DEBUG", "buffer[3]: 0x%02X, buffer[4]: 0x%02X", buffer[3], buffer[4]);
+    std::vector<std::pair<sensor::Sensor*, float>> updates;
 
-  if (diagnose_0x24) {
-    float pack_voltage = (buffer[3] << 8 | buffer[4]) / 10.0f;
-    float current = (buffer[5] << 8 | buffer[6]) / 10.0f - 1000.0f;
-    float remaining_capacity = (buffer[7] << 8 | buffer[8]) / 10.0f;
-    float total_capacity = (buffer[9] << 8 | buffer[10]) / 10.0f;
-    uint16_t cycle_count = (buffer[11] << 8 | buffer[12]);
-    uint16_t total_discharge_capacity = (buffer[13] << 8 | buffer[14]);
-    float soc = buffer[15];
-    float soh = buffer[16];
-    float average_cell_voltage = (buffer[17] << 8 | buffer[18]) / 1000.0f;
-    float average_cell_temp = (buffer[19] << 8 | buffer[20]) / 10.0f - 273.15f;
-    float max_cell_voltage = (buffer[21] << 8 | buffer[22]) / 1000.0f;
-    float min_cell_voltage = (buffer[23] << 8 | buffer[24]) / 1000.0f;
-    float max_cell_temp = (buffer[25] << 8 | buffer[26]) / 10.0f - 273.15f;
-    float min_cell_temp = (buffer[27] << 8 | buffer[28]) / 10.0f - 273.15f;
-    float maxdiscurt = (buffer[29] << 8 | buffer[30]) / 10.0f;
-    float maxchgcurt = (buffer[31] << 8 | buffer[32]) / 10.0f;
+    updates.emplace_back(pack_voltage_[bms_index], (buffer[3] << 8 | buffer[4]) / 100.0f);
+    updates.emplace_back(current_[bms_index], (int16_t(buffer[5] << 8 | buffer[6])) / 100.0f);
+    updates.emplace_back(remaining_capacity_[bms_index], (buffer[7] << 8 | buffer[8]) / 100.0f);
+    updates.emplace_back(total_capacity_[bms_index], (buffer[9] << 8 | buffer[10]) / 100.0f);
+    updates.emplace_back(total_discharge_capacity_[bms_index], (buffer[11] << 8 | buffer[12]) / 0.1f);
+    updates.emplace_back(soc_[bms_index], (buffer[13] << 8 | buffer[14]) / 10.0f);
+    updates.emplace_back(soh_[bms_index], (buffer[15] << 8 | buffer[16]) / 10.0f);
+    updates.emplace_back(cycle_count_[bms_index], (buffer[17] << 8 | buffer[18]));
+    updates.emplace_back(average_cell_voltage_[bms_index], (buffer[19] << 8 | buffer[20]) / 1000.0f);
+    updates.emplace_back(average_cell_temp_[bms_index], (buffer[21] << 8 | buffer[22]) / 10.0f - 273.15f);
+    updates.emplace_back(max_cell_voltage_[bms_index], (buffer[23] << 8 | buffer[24]) / 1000.0f);
+    updates.emplace_back(min_cell_voltage_[bms_index], (buffer[25] << 8 | buffer[26]) / 1000.0f);
+    updates.emplace_back(max_cell_temp_[bms_index], (buffer[27] << 8 | buffer[28]) / 10.0f - 273.15f);
+    updates.emplace_back(min_cell_temp_[bms_index], (buffer[29] << 8 | buffer[30]) / 10.0f - 273.15f);
+    updates.emplace_back(maxdiscurt_[bms_index], (buffer[33] << 8 | buffer[34]) / 1.0f);
+    updates.emplace_back(maxchgcurt_[bms_index], (buffer[35] << 8 | buffer[36]) / 1.0f);
 
-    if (pack_voltage_[bms_index]) pack_voltage_[bms_index]->publish_state(pack_voltage);
-    if (current_[bms_index]) current_[bms_index]->publish_state(current);
-    if (remaining_capacity_[bms_index]) remaining_capacity_[bms_index]->publish_state(remaining_capacity);
-    if (total_capacity_[bms_index]) total_capacity_[bms_index]->publish_state(total_capacity);
-    if (total_discharge_capacity_[bms_index]) total_discharge_capacity_[bms_index]->publish_state(total_discharge_capacity);
-    if (soc_[bms_index]) soc_[bms_index]->publish_state(soc);
-    if (soh_[bms_index]) soh_[bms_index]->publish_state(soh);
-    if (cycle_count_[bms_index]) cycle_count_[bms_index]->publish_state(cycle_count);
-    if (average_cell_voltage_[bms_index]) average_cell_voltage_[bms_index]->publish_state(average_cell_voltage);
-    if (average_cell_temp_[bms_index]) average_cell_temp_[bms_index]->publish_state(average_cell_temp);
-    if (max_cell_voltage_[bms_index]) max_cell_voltage_[bms_index]->publish_state(max_cell_voltage);
-    if (min_cell_voltage_[bms_index]) min_cell_voltage_[bms_index]->publish_state(min_cell_voltage);
-    if (max_cell_temp_[bms_index]) max_cell_temp_[bms_index]->publish_state(max_cell_temp);
-    if (min_cell_temp_[bms_index]) min_cell_temp_[bms_index]->publish_state(min_cell_temp);
-    if (maxdiscurt_[bms_index]) maxdiscurt_[bms_index]->publish_state(maxdiscurt);
-    if (maxchgcurt_[bms_index]) maxchgcurt_[bms_index]->publish_state(maxchgcurt);
+    for (auto &pair : updates) {
+      auto *sensor = pair.first;
+      auto value = pair.second;
+      if (sensor != nullptr) {
+        sensor->publish_state(value);
+      }
+    }
+  }
 
-  } else if (diagnose_0x34) {
-    std::vector<std::pair<sensor::Sensor *, float>> updates;
+  if (buffer[2] == 0x34) {
+    std::vector<std::pair<sensor::Sensor*, float>> updates;
 
     updates.emplace_back(cell_1_[bms_index], (buffer[3] << 8 | buffer[4]) / 1000.0f);
     updates.emplace_back(cell_2_[bms_index], (buffer[5] << 8 | buffer[6]) / 1000.0f);
@@ -251,144 +234,113 @@ void SeplosParser::process_packet(size_t length) {
         sensor->publish_state(value);
       }
     }
-  } else if (diagnose_0x12) {
+  }
+  if (buffer[2] == 0x12) {
+    //ESP_LOGW("seplos", "BMS-ID 0x12: %d", buffer[0]);
+    std::vector<std::string> active_alarms;
+    std::vector<std::string> active_protections;
     std::vector<int> low_voltage_cells, high_voltage_cells;
     std::vector<int> low_temp_cells, high_temp_cells;
     std::vector<int> balancing_cells;
-    std::vector<std::string> system_status, fet_status, active_alarms, active_protections;
+    std::vector<std::string> system_status;
+    std::vector<std::string> fet_status;
 
-    if (buffer[3] & 0x01) low_voltage_cells.push_back(1);
-    if (buffer[3] & 0x02) low_voltage_cells.push_back(2);
-    if (buffer[3] & 0x04) low_voltage_cells.push_back(3);
-    if (buffer[3] & 0x08) low_voltage_cells.push_back(4);
-    if (buffer[3] & 0x10) low_voltage_cells.push_back(5);
-    if (buffer[3] & 0x20) low_voltage_cells.push_back(6);
-    if (buffer[3] & 0x40) low_voltage_cells.push_back(7);
-    if (buffer[3] & 0x80) low_voltage_cells.push_back(8);
+    auto parse_bits = [](uint8_t byte, int offset) {
+      std::vector<int> result;
+      for (int i = 0; i < 8; i++) {
+        if (byte & (1 << i)) {
+          result.push_back(i + offset);
+        }
+      }
+      return result;
+    };
 
-    if (buffer[4] & 0x01) low_voltage_cells.push_back(9);
-    if (buffer[4] & 0x02) low_voltage_cells.push_back(10);
-    if (buffer[4] & 0x04) low_voltage_cells.push_back(11);
-    if (buffer[4] & 0x08) low_voltage_cells.push_back(12);
-    if (buffer[4] & 0x10) low_voltage_cells.push_back(13);
-    if (buffer[4] & 0x20) low_voltage_cells.push_back(14);
-    if (buffer[4] & 0x40) low_voltage_cells.push_back(15);
-    if (buffer[4] & 0x80) low_voltage_cells.push_back(16);
+    low_voltage_cells = parse_bits(buffer[3], 1);
+    auto low_v2 = parse_bits(buffer[4], 9);
+    low_voltage_cells.insert(low_voltage_cells.end(), low_v2.begin(), low_v2.end());
 
-    if (buffer[5] & 0x01) high_voltage_cells.push_back(1);
-    if (buffer[5] & 0x02) high_voltage_cells.push_back(2);
-    if (buffer[5] & 0x04) high_voltage_cells.push_back(3);
-    if (buffer[5] & 0x08) high_voltage_cells.push_back(4);
-    if (buffer[5] & 0x10) high_voltage_cells.push_back(5);
-    if (buffer[5] & 0x20) high_voltage_cells.push_back(6);
-    if (buffer[5] & 0x40) high_voltage_cells.push_back(7);
-    if (buffer[5] & 0x80) high_voltage_cells.push_back(8);
+    high_voltage_cells = parse_bits(buffer[5], 1);
+    auto high_v2 = parse_bits(buffer[6], 9);
+    high_voltage_cells.insert(high_voltage_cells.end(), high_v2.begin(), high_v2.end());
 
-    if (buffer[6] & 0x01) high_voltage_cells.push_back(9);
-    if (buffer[6] & 0x02) high_voltage_cells.push_back(10);
-    if (buffer[6] & 0x04) high_voltage_cells.push_back(11);
-    if (buffer[6] & 0x08) high_voltage_cells.push_back(12);
-    if (buffer[6] & 0x10) high_voltage_cells.push_back(13);
-    if (buffer[6] & 0x20) high_voltage_cells.push_back(14);
-    if (buffer[6] & 0x40) high_voltage_cells.push_back(15);
-    if (buffer[6] & 0x80) high_voltage_cells.push_back(16);
+    low_temp_cells = parse_bits(buffer[7], 1);
+    high_temp_cells = parse_bits(buffer[8], 1);
 
-    if (buffer[7] & 0x01) low_temp_cells.push_back(1);
-    if (buffer[7] & 0x02) low_temp_cells.push_back(2);
-    if (buffer[7] & 0x04) low_temp_cells.push_back(3);
-    if (buffer[7] & 0x08) low_temp_cells.push_back(4);
+    balancing_cells = parse_bits(buffer[9], 1);
+    auto bal2 = parse_bits(buffer[10], 9);
+    balancing_cells.insert(balancing_cells.end(), bal2.begin(), bal2.end());
 
-    if (buffer[8] & 0x01) low_temp_cells.push_back(5);
-    if (buffer[8] & 0x02) low_temp_cells.push_back(6);
-    if (buffer[8] & 0x04) low_temp_cells.push_back(7);
-    if (buffer[8] & 0x08) low_temp_cells.push_back(8);
+    if (buffer[11] & 0x01) system_status.push_back("Discharge");
+    if (buffer[11] & 0x02) system_status.push_back("Charge");
+    if (buffer[11] & 0x04) system_status.push_back("Floating Charge");
+    if (buffer[11] & 0x08) system_status.push_back("Full Charge");
+    if (buffer[11] & 0x10) system_status.push_back("Standby Mode");
+    if (buffer[11] & 0x20) system_status.push_back("Turn Off");
 
-    if (buffer[9] & 0x01) low_temp_cells.push_back(9);
-    if (buffer[9] & 0x02) low_temp_cells.push_back(10);
-    if (buffer[9] & 0x04) low_temp_cells.push_back(11);
-    if (buffer[9] & 0x08) low_temp_cells.push_back(12);
+    if (buffer[12] & 0x01) active_alarms.push_back("Cell High Voltage Alarm");
+    if (buffer[12] & 0x02) active_protections.push_back("Cell Over Voltage Protection");
+    if (buffer[12] & 0x04) active_alarms.push_back("Cell Low Voltage Alarm");
+    if (buffer[12] & 0x08) active_protections.push_back("Cell Under Voltage Protection");
+    if (buffer[12] & 0x10) active_alarms.push_back("Pack High Voltage Alarm");
+    if (buffer[12] & 0x20) active_protections.push_back("Pack Over Voltage Protection");
+    if (buffer[12] & 0x40) active_alarms.push_back("Pack Low Voltage Alarm");
+    if (buffer[12] & 0x80) active_protections.push_back("Pack Under Voltage Protection");
 
-    if (buffer[10] & 0x01) low_temp_cells.push_back(13);
-    if (buffer[10] & 0x02) low_temp_cells.push_back(14);
-    if (buffer[10] & 0x04) low_temp_cells.push_back(15);
-    if (buffer[10] & 0x08) low_temp_cells.push_back(16);
+    if (buffer[13] & 0x01) active_alarms.push_back("Charge High Temperature Alarm");
+    if (buffer[13] & 0x02) active_protections.push_back("Charge High Temperature Protection");
+    if (buffer[13] & 0x04) active_alarms.push_back("Charge Low Temperature Alarm");
+    if (buffer[13] & 0x08) active_protections.push_back("Charge Under Temperature Protection");
+    if (buffer[13] & 0x10) active_alarms.push_back("Discharge High Temperature Alarm");
+    if (buffer[13] & 0x20) active_protections.push_back("Discharge Over Temperature Protection");
+    if (buffer[13] & 0x40) active_alarms.push_back("Discharge Low Temperature Alarm");
+    if (buffer[13] & 0x80) active_protections.push_back("Discharge Under Temperature Protection");
 
-    if (buffer[11] & 0x01) high_temp_cells.push_back(1);
-    if (buffer[11] & 0x02) high_temp_cells.push_back(2);
-    if (buffer[11] & 0x04) high_temp_cells.push_back(3);
-    if (buffer[11] & 0x08) high_temp_cells.push_back(4);
+    if (buffer[14] & 0x01) active_alarms.push_back("High Environment Temperature Alarm");
+    if (buffer[14] & 0x02) active_protections.push_back("Over Environment Temperature Protection");
+    if (buffer[14] & 0x04) active_alarms.push_back("Low Environment Temperature Alarm");
+    if (buffer[14] & 0x08) active_protections.push_back("Under Environment Temperature Protection");
+    if (buffer[14] & 0x10) active_alarms.push_back("High Power Temperature Alarm");
+    if (buffer[14] & 0x20) active_protections.push_back("Over Power Temperature Protection");
+    if (buffer[14] & 0x40) active_alarms.push_back("Cell Temperature Low Heating");
 
-    if (buffer[12] & 0x01) high_temp_cells.push_back(5);
-    if (buffer[12] & 0x02) high_temp_cells.push_back(6);
-    if (buffer[12] & 0x04) high_temp_cells.push_back(7);
-    if (buffer[12] & 0x08) high_temp_cells.push_back(8);
+    if (buffer[15] & 0x01) active_alarms.push_back("Charge Current Alarm");
+    if (buffer[15] & 0x02) active_protections.push_back("Charge Over Current Protection");
+    if (buffer[15] & 0x04) active_protections.push_back("Charge Second Level Current Protection");
+    if (buffer[15] & 0x08) active_alarms.push_back("Discharge Current Alarm");
+    if (buffer[15] & 0x10) active_protections.push_back("Discharge Over Current Protection");
+    if (buffer[15] & 0x20) active_protections.push_back("Discharge Second Level Over Current Protection");
+    if (buffer[15] & 0x40) active_protections.push_back("Output Short Circuit Protection");
 
-    if (buffer[13] & 0x01) high_temp_cells.push_back(9);
-    if (buffer[13] & 0x02) high_temp_cells.push_back(10);
-    if (buffer[13] & 0x04) high_temp_cells.push_back(11);
-    if (buffer[13] & 0x08) high_temp_cells.push_back(12);
+    if (buffer[16] & 0x01) active_alarms.push_back("Output Short Latch Up");
+    if (buffer[16] & 0x04) active_alarms.push_back("Second Charge Latch Up");
+    if (buffer[16] & 0x08) active_alarms.push_back("Second Discharge Latch Up");
 
-    if (buffer[14] & 0x01) high_temp_cells.push_back(13);
-    if (buffer[14] & 0x02) high_temp_cells.push_back(14);
-    if (buffer[14] & 0x04) high_temp_cells.push_back(15);
-    if (buffer[14] & 0x08) high_temp_cells.push_back(16);
+    if (buffer[17] & 0x04) active_alarms.push_back("SOC Alarm");
+    if (buffer[17] & 0x08) active_protections.push_back("SOC Protection");
+    if (buffer[17] & 0x10) active_alarms.push_back("Cell Difference Alarm");
 
-    if (buffer[15] & 0x01) balancing_cells.push_back(1);
-    if (buffer[15] & 0x02) balancing_cells.push_back(2);
-    if (buffer[15] & 0x04) balancing_cells.push_back(3);
-    if (buffer[15] & 0x08) balancing_cells.push_back(4);
-    if (buffer[15] & 0x10) balancing_cells.push_back(5);
-    if (buffer[15] & 0x20) balancing_cells.push_back(6);
-    if (buffer[15] & 0x40) balancing_cells.push_back(7);
-    if (buffer[15] & 0x80) balancing_cells.push_back(8);
+    if (buffer[18] & 0x01) fet_status.push_back("Discharge FET On");
+    if (buffer[18] & 0x02) fet_status.push_back("Charge FET On");
+    if (buffer[18] & 0x04) fet_status.push_back("Current Limiting FET On");
+    if (buffer[18] & 0x08) fet_status.push_back("Heating On");
 
-    if (buffer[16] & 0x01) balancing_cells.push_back(9);
-    if (buffer[16] & 0x02) balancing_cells.push_back(10);
-    if (buffer[16] & 0x04) balancing_cells.push_back(11);
-    if (buffer[16] & 0x08) balancing_cells.push_back(12);
-    if (buffer[16] & 0x10) balancing_cells.push_back(13);
-    if (buffer[16] & 0x20) balancing_cells.push_back(14);
-    if (buffer[16] & 0x40) balancing_cells.push_back(15);
-    if (buffer[16] & 0x80) balancing_cells.push_back(16);
+    if (buffer[19] & 0x01) active_alarms.push_back("Low SOC Alarm");
+    if (buffer[19] & 0x02) active_alarms.push_back("Intermittent Charge");
+    if (buffer[19] & 0x04) active_alarms.push_back("External Switch Conrol");
+    if (buffer[19] & 0x08) active_alarms.push_back("Static Standy Sleep Mode");
+    if (buffer[19] & 0x10) active_alarms.push_back("History Data Recording");
+    if (buffer[19] & 0x20) active_protections.push_back("Under SOC Protections");
+    if (buffer[19] & 0x40) active_alarms.push_back("Active Limited Current");
+    if (buffer[19] & 0x80) active_alarms.push_back("Passive Limited Current");
 
-    if (buffer[17] & 0x01) system_status.push_back("System Running");
-    if (buffer[17] & 0x02) system_status.push_back("System Sleeping");
-
-    if (buffer[18] & 0x01) active_alarms.push_back("Cell Voltage High Alarm");
-    if (buffer[18] & 0x02) active_alarms.push_back("Cell Voltage Low Alarm");
-    if (buffer[18] & 0x04) active_protections.push_back("Over Voltage Protection");
-    if (buffer[18] & 0x08) active_protections.push_back("Under Voltage Protection");
-    if (buffer[18] & 0x10) active_protections.push_back("Cell Voltage Difference Protection");
-    if (buffer[18] & 0x20) active_alarms.push_back("Cell Temperature High Alarm");
-    if (buffer[18] & 0x40) active_protections.push_back("Cell Temperature Protection");
-    if (buffer[18] & 0x80) active_alarms.push_back("Cell Temperature Difference Alarm");
-
-    if (buffer[19] & 0x01) active_alarms.push_back("Output Current High Alarm");
-    if (buffer[19] & 0x02) active_protections.push_back("Over Current Protection");
-    if (buffer[19] & 0x04) active_alarms.push_back("Charge Current High Alarm");
-    if (buffer[19] & 0x08) active_protections.push_back("Charge Current Protection");
-    if (buffer[19] & 0x10) active_alarms.push_back("Environment Temperature High Alarm");
-    if (buffer[19] & 0x20) active_protections.push_back("Environment Temperature Protection");
-    if (buffer[19] & 0x40) active_alarms.push_back("MOS Temperature High Alarm");
-    if (buffer[19] & 0x80) active_protections.push_back("MOS Temperature Protection");
-
-    if (buffer[20] & 0x01) fet_status.push_back("Charge MOS On");
-    if (buffer[20] & 0x02) fet_status.push_back("Discharge MOS On");
-    if (buffer[20] & 0x04) fet_status.push_back("Charge MOS Off");
-    if (buffer[20] & 0x08) fet_status.push_back("Discharge MOS Off");
-    if (buffer[20] & 0x10) fet_status.push_back("Charge MOS Ready");
-    if (buffer[20] & 0x20) fet_status.push_back("Discharge MOS Ready");
-    if (buffer[20] & 0x40) fet_status.push_back("Charge MOS Fault");
-    if (buffer[20] & 0x80) fet_status.push_back("Discharge MOS Fault");
-
-    if (buffer[21] & 0x01) active_alarms.push_back("Cell Voltage Imbalance Alarm");
-    if (buffer[21] & 0x02) active_protections.push_back("Cell Voltage Imbalance Protection");
-    if (buffer[21] & 0x04) active_alarms.push_back("Cell Temperature Imbalance Alarm");
-    if (buffer[21] & 0x08) active_protections.push_back("Cell Temperature Imbalance Protection");
-    if (buffer[21] & 0x10) active_alarms.push_back("Short Circuit Alarm");
-    if (buffer[21] & 0x20) active_protections.push_back("Short Circuit Protection");
-    if (buffer[21] & 0x40) active_alarms.push_back("Power On Alarm");
-    if (buffer[21] & 0x80) active_protections.push_back("Power On Protection");
+    if (buffer[20] & 0x01) active_protections.push_back("NTC Fault");
+    if (buffer[20] & 0x02) active_protections.push_back("AFE Fault");
+    if (buffer[20] & 0x04) active_protections.push_back("Charge Mosfet Fault");
+    if (buffer[20] & 0x08) active_protections.push_back("Discharge Mosfet Fault");
+    if (buffer[20] & 0x10) active_protections.push_back("Cell Fault");
+    if (buffer[20] & 0x20) active_protections.push_back("Break Line Fault");
+    if (buffer[20] & 0x40) active_protections.push_back("Key Fault");
+    if (buffer[20] & 0x80) active_protections.push_back("Aerosol Alarm");
 
     std::string volt_str = join_list(low_voltage_cells, ", ");
     if (!volt_str.empty() && !high_voltage_cells.empty()) volt_str += " | " + join_list(high_voltage_cells, ", ");
@@ -399,10 +351,6 @@ void SeplosParser::process_packet(size_t length) {
     else temp_str += join_list(high_temp_cells, ", ");
 
     if (should_update(bms_index)) {
-      // TextSensor publish_state calls disabled on this build to avoid missing symbol errors.
-      // You can re-enable them if your ESPHome/text_sensor library provides
-      // TextSensor::publish_state(const std::string &).
-      /*
       if (cell_voltage_alarms_[bms_index]) cell_voltage_alarms_[bms_index]->publish_state(volt_str);
       if (cell_temperature_alarms_[bms_index]) cell_temperature_alarms_[bms_index]->publish_state(temp_str);
       if (active_balancing_cells_[bms_index]) active_balancing_cells_[bms_index]->publish_state(join_list(balancing_cells, ", "));
@@ -410,7 +358,6 @@ void SeplosParser::process_packet(size_t length) {
       if (FET_status_[bms_index]) FET_status_[bms_index]->publish_state(join_list(fet_status, ", "));
       if (active_alarms_[bms_index]) active_alarms_[bms_index]->publish_state(join_list(active_alarms, ", "));
       if (active_protections_[bms_index]) active_protections_[bms_index]->publish_state(join_list(active_protections, ", "));
-      */
     }
   }
 }
@@ -426,12 +373,24 @@ const uint16_t crc_table[256] = {
   0xD201, 0x12C0, 0x1380, 0xD341, 0x1100, 0xD1C1, 0xD081, 0x1040,
   0xF001, 0x30C0, 0x3180, 0xF141, 0x3300, 0xF3C1, 0xF281, 0x3240,
   0x3600, 0xF6C1, 0xF781, 0x3740, 0xF501, 0x35C0, 0x3480, 0xF441,
-  0xE001, 0x20C0, 0x2180, 0xE141, 0x2300, 0xE3C1, 0xE281, 0x2240,
-  0x2600, 0xE6C1, 0xE781, 0x2740, 0xE501, 0x25C0, 0x2480, 0xE441,
+  0x3C00, 0xFCC1, 0xFD81, 0x3D40, 0xFF01, 0x3FC0, 0x3E80, 0xFE41,
+  0xFA01, 0x3AC0, 0x3B80, 0xFB41, 0x3900, 0xF9C1, 0xF881, 0x3840,
+  0x2800, 0xE8C1, 0xE981, 0x2940, 0xEB01, 0x2BC0, 0x2A80, 0xEA41,
+  0xEE01, 0x2EC0, 0x2F80, 0xEF41, 0x2D00, 0xEDC1, 0xEC81, 0x2C40,
+  0xE401, 0x24C0, 0x2580, 0xE541, 0x2700, 0xE7C1, 0xE681, 0x2640,
+  0x2200, 0xE2C1, 0xE381, 0x2340, 0xE101, 0x21C0, 0x2080, 0xE041,
   0xA001, 0x60C0, 0x6180, 0xA141, 0x6300, 0xA3C1, 0xA281, 0x6240,
   0x6600, 0xA6C1, 0xA781, 0x6740, 0xA501, 0x65C0, 0x6480, 0xA441,
-  0x7C00, 0xBCC1, 0xBD81, 0x7D40, 0xBF01, 0x7FC0, 0x7E80, 0xBE41,
-  0xBA01, 0x7AC0, 0x7B80, 0xBB41, 0x7900, 0xB9C1, 0xB881, 0x7840,
+  0x6C00, 0xACC1, 0xAD81, 0x6D40, 0xAF01, 0x6FC0, 0x6E80, 0xAE41,
+  0xAA01, 0x6AC0, 0x6B80, 0xAB41, 0x6900, 0xA9C1, 0xA881, 0x6840,
+  0x7800, 0xB8C1, 0xB981, 0x7940, 0xBB01, 0x7BC0, 0x7A80, 0xBA41,
+  0xBE01, 0x7EC0, 0x7F80, 0xBF41, 0x7D00, 0xBDC1, 0xBC81, 0x7C40,
+  0xB401, 0x74C0, 0x7580, 0xB541, 0x7700, 0xB7C1, 0xB681, 0x7640,
+  0x7200, 0xB2C1, 0xB381, 0x7340, 0xB101, 0x71C0, 0x7080, 0xB041,
+  0x5000, 0x90C1, 0x9181, 0x5140, 0x9301, 0x53C0, 0x5280, 0x9241,
+  0x9601, 0x56C0, 0x5780, 0x9741, 0x5500, 0x95C1, 0x9481, 0x5440,
+  0x9C01, 0x5CC0, 0x5D80, 0x9D41, 0x5F00, 0x9FC1, 0x9E81, 0x5E40,
+  0x5A00, 0x9AC1, 0x9B81, 0x5B40, 0x9901, 0x59C0, 0x5880, 0x9841,
   0x8801, 0x48C0, 0x4980, 0x8941, 0x4B00, 0x8BC1, 0x8A81, 0x4A40,
   0x4E00, 0x8EC1, 0x8F81, 0x4F40, 0x8D01, 0x4DC0, 0x4C80, 0x8C41,
   0x4400, 0x84C1, 0x8581, 0x4540, 0x8701, 0x47C0, 0x4680, 0x8641,
@@ -440,10 +399,9 @@ const uint16_t crc_table[256] = {
 
 uint16_t SeplosParser::calculate_modbus_crc(const std::deque<uint8_t> &data, size_t length) {
   uint16_t crc = 0xFFFF;
-
   for (size_t i = 0; i < length; i++) {
-    uint8_t table_index = (crc ^ data[i]) & 0xFF;
-    crc = (crc >> 8) ^ crc_table[table_index];
+    uint8_t index = crc ^ data[i];
+    crc = (crc >> 8) ^ crc_table[index];
   }
   return crc;
 }
@@ -457,10 +415,9 @@ void SeplosParser::dump_config(){
         LOG_SENSOR("  ", "Sensor", sensor);
     }
     
-    // Text sensors logging disabled to avoid dependency on LOG_TEXT_SENSOR helper
-    // for(auto *text_sensor : this->text_sensors_){
-    //   ESP_LOGD(TAG, "Text sensor: %s", text_sensor->get_name().c_str());
-    // }
+    for(auto *text_sensor : this->text_sensors_){
+        LOG_TEXT_SENSOR("  ", "Text sensor", text_sensor);
+    }
 
 //    for(auto *binary_sensor : this->binary_sensors_){
 //        LOG_BINARY_SENSOR("  ", "Binary sensor", binary_sensor);
