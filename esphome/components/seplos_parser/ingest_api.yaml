@@ -1,0 +1,45 @@
+# ingest_api.yaml
+# Đẩy dữ liệu BMS0/BMS1 lên webserver bằng global API key
+
+globals:
+  - id: api_base_url
+    type: std::string
+    initial_value: '"http://192.168.1.17"'   # đổi IP webserver tại đây
+
+  - id: api_key
+    type: std::string
+    initial_value: '"solarhagiang"'          # trùng với webserver
+
+http_request:
+  useragent: "6-pack-pin"
+  timeout: 10s
+  verify_ssl: false
+
+interval:
+  - interval: 300s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - http_request.post:
+                url: !lambda |-
+                  return id(api_base_url) + "/api/ingest.php";
+                request_headers:
+                  Content-Type: application/json
+                json: |-
+                  // Global API key + MAC
+                  root["api_key"] = id(api_key);
+                  root["mac"] = id(device_mac).state;
+
+                  // BMS0
+                  root["bms0"]["pack_voltage"]       = id(bms0_pack_voltage).state;
+                  root["bms0"]["current"]            = id(bms0_current).state;
+                  root["bms0"]["remaining_capacity"] = id(bms0_remaining_capacity).state;
+                  root["bms0"]["total_capacity"]     = id(bms0_total_capacity).state;
+
+                  // BMS1
+                  root["bms1"]["pack_voltage"]       = id(bms1_pack_voltage).state;
+                  root["bms1"]["current"]            = id(bms1_current).state;
+                  root["bms1"]["remaining_capacity"] = id(bms1_remaining_capacity).state;
+                  root["bms1"]["total_capacity"]     = id(bms1_total_capacity).state;
