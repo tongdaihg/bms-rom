@@ -69,7 +69,7 @@ sensor:
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
 	id: bms0_cycle_count
-    name: bms0 cycle_count
+	name: bms0 cycle_count
     unit_of_measurement: "cycles"
     accuracy_decimals: 0
     filters:
