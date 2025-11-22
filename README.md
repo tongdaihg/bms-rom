@@ -2,20 +2,19 @@
 
 [http://solarhagiang.vn](http://solarhagiang.vn/)
 
-This package is designed to read the Seplos V3 BMS in a multipack configuration. In the V3 generation, the first BMS acts as a Modbus master while all other BMS act as slaves. In this configuration, it is no longer possible to access the BMS from a third device via Modbus, since two master devices cannot exist in an RS-485 Modbus system. The package passively detects the communication between the devices, which does not disrupt the communication of the individual BMS.
+Gói này được thiết kế để đọc BMS Seplos V3 trong cấu hình multipack. Ở thế hệ V3, BMS đầu tiên hoạt động như một Modbus master trong khi tất cả các BMS khác hoạt động như các slave. Trong cấu hình này, không thể truy cập BMS từ thiết bị thứ ba qua Modbus nữa, vì không thể có hai thiết bị master trong hệ thống RS-485 Modbus. Gói này thụ động phát hiện giao tiếp giữa các thiết bị, điều này không làm gián đoạn giao tiếp của từng BMS.
 
-In the YAML, all required data must be inserted/modified.
-Every 200 ms, the BMS transmits a new data set. The update interval can be changed (default: 5 seconds).
+Trong YAML, tất cả dữ liệu cần thiết phải được chèn/sửa đổi. Cứ sau 200 ms, BMS sẽ truyền một tập dữ liệu mới. Khoảng thời gian cập nhật có thể được thay đổi (mặc định: 5 giây).
 
 ![seplos 4x](https://github.com/user-attachments/assets/9d710287-069d-44b6-acda-e96764642a33)
 
-To establish a connection, pins 1/8 (B), 2/7 (A) and 5 (GND) must be connected to the RS485 adapter of the ESP8622/ESP32. Various RS485 to TTL adapters can be used.
+Để thiết lập kết nối, chân 1/8 (B), 2/7 (A) và 5 (GND) phải được kết nối với bộ chuyển đổi RS485 của ESP8622/ESP32. Có thể sử dụng nhiều bộ chuyển đổi RS485 sang TTL khác nhau.
 
-During my tests, I found that the 120 Ohm terminator in the adapter is not necessary. There is also no terminator in the original Seplos V3 USB adapter. If only one BMS is to be read, it is necessary to connect pin 6 (B) to pin 5 (GND) so that the master can send data independently.
-
+Trong quá trình thử nghiệm, tôi thấy rằng đầu nối 120 Ohm trong bộ chuyển đổi là không cần thiết. Bộ chuyển đổi USB Seplos V3 gốc cũng không có đầu nối này. Nếu chỉ cần đọc một BMS, cần kết nối chân 6 (B) với chân 5 (GND) để thiết bị chủ có thể gửi dữ liệu độc lập.
 ![pinout](https://github.com/user-attachments/assets/1c8ec271-d20f-4a5d-baf4-87e5a98fc35a)
 
-The following data points are currently read out:
+Các điểm dữ liệu sau đây hiện đang được đọc:
+
 ```
 pack_voltage
 current
