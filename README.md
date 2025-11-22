@@ -1,6 +1,6 @@
-# seplos_v3_sniffer
+# SOLAR HÀ GIANG
 
-[www.seplos.com](https://www.seplos.com/)
+[http://solarhagiang.vn](http://solarhagiang.vn/)
 
 This package is designed to read the Seplos V3 BMS in a multipack configuration. In the V3 generation, the first BMS acts as a Modbus master while all other BMS act as slaves. In this configuration, it is no longer possible to access the BMS from a third device via Modbus, since two master devices cannot exist in an RS-485 Modbus system. The package passively detects the communication between the devices, which does not disrupt the communication of the individual BMS.
 
