@@ -31,9 +31,9 @@ interval:
                   // Global API key + MAC
                   root["api_key"] = id(api_key);
                   root["mac"] = id(device_mac).state;
-                      root["bms0"]["pack_voltage"]       = id(bms0_pack_voltage).state;
+                  root["bms0"]["pack_voltage"]       = id(bms0_pack_voltage).state;
                   root["bms0"]["current"]            = id(bms0_current).state;
-                  root["bms0"]["bms0_cycle_count"]            = id(bms0_cycle_count).state;
+                  root["bms0"]["bms0_cycle_count"]   = id(bms0_cycle_count).state;
                   root["bms0"]["remaining_capacity"] = id(bms0_remaining_capacity).state;
                   root["bms0"]["total_capacity"]     = id(bms0_total_capacity).state;
                   root["bms0"]["max_cell_voltage"]     = id(bms0_max_cell_voltage).state;
@@ -85,7 +85,7 @@ interval:
 
                   root["bms2"]["pack_voltage"]       = id(bms2_pack_voltage).state;
                   root["bms2"]["current"]            = id(bms2_current).state;
-                  root["bms2"]["current"]            = id(bms2_current).state;
+                  root["bms2"]["bms2_cycle_count"]   = id(bms2_cycle_count).state;
                   root["bms2"]["remaining_capacity"] = id(bms2_remaining_capacity).state;
                   root["bms2"]["total_capacity"]     = id(bms2_total_capacity).state;
                   root["bms2"]["max_cell_voltage"]     = id(bms2_max_cell_voltage).state;
@@ -111,8 +111,7 @@ interval:
 
                   root["bms3"]["pack_voltage"]       = id(bms3_pack_voltage).state;
                   root["bms3"]["current"]            = id(bms3_current).state;
-                  root["bms3"]["current"]            = id(bms3_current).state;
-                  root["bms3"]["current"]            = id(bms3_current).state;
+                  root["bms3"]["bms3_cycle_count"]   = id(bms3_cycle_count).state;
                   root["bms3"]["remaining_capacity"] = id(bms3_remaining_capacity).state;
                   root["bms3"]["total_capacity"]     = id(bms3_total_capacity).state;
                   root["bms3"]["max_cell_voltage"]     = id(bms3_max_cell_voltage).state;
@@ -138,7 +137,7 @@ interval:
 
                   root["bms4"]["pack_voltage"]       = id(bms4_pack_voltage).state;
                   root["bms4"]["current"]            = id(bms4_current).state;
-                  root["bms4"]["current"]            = id(bms4_current).state;
+                  root["bms4"]["bms4_cycle_count"]   = id(bms4_cycle_count).state;
                   root["bms4"]["remaining_capacity"] = id(bms4_remaining_capacity).state;
                   root["bms4"]["total_capacity"]     = id(bms4_total_capacity).state;
                   root["bms4"]["max_cell_voltage"]     = id(bms4_max_cell_voltage).state;
@@ -164,7 +163,7 @@ interval:
 
                   root["bms5"]["pack_voltage"]       = id(bms5_pack_voltage).state;
                   root["bms5"]["current"]            = id(bms5_current).state;
-                  root["bms5"]["current"]            = id(bms5_current).state;
+                  root["bms5"]["bms5_cycle_count"]   = id(bms5_cycle_count).state;
                   root["bms5"]["remaining_capacity"] = id(bms5_remaining_capacity).state;
                   root["bms5"]["total_capacity"]     = id(bms5_total_capacity).state;
                   root["bms5"]["max_cell_voltage"]     = id(bms5_max_cell_voltage).state;
