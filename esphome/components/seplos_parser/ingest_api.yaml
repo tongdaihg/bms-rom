@@ -33,6 +33,7 @@ interval:
                   root["mac"] = id(device_mac).state;
                       root["bms0"]["pack_voltage"]       = id(bms0_pack_voltage).state;
                   root["bms0"]["current"]            = id(bms0_current).state;
+                  root["bms0"]["cycle_count"]            = id(bms0_cycle_count).state;
                   root["bms0"]["remaining_capacity"] = id(bms0_remaining_capacity).state;
                   root["bms0"]["total_capacity"]     = id(bms0_total_capacity).state;
                   root["bms0"]["max_cell_voltage"]     = id(bms0_max_cell_voltage).state;
