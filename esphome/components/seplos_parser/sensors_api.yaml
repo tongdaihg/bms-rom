@@ -2,29 +2,6 @@
 # Khai báo toàn bộ sensor và text_sensor cho 2 BMS
 
 sensor:
-
-  # Thông tin WiFi đang kết nối
-  - platform: wifi_info
-    ssid:
-      name: "WiFi SSID (connected)"
-    ip_address:
-      name: "WiFi IP Address"
-  # SSID cấu hình
-  - platform: template
-    name: "WiFi SSID (configured)"
-    id: wifi_ssid_config
-    icon: "mdi:wifi"
-    lambda: |-
-      return { "${wifi_ssid}" };
-
-  # Password cấu hình
-  - platform: template
-    name: "WiFi Password (configured)"
-    id: wifi_password_config
-    icon: "mdi:key-variant"
-    lambda: |-
-      return { "${wifi_password}" };
-
   # ========== BMS0 ==========
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
