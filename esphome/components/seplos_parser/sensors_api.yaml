@@ -2079,6 +2079,23 @@ text_sensor:
       name: "Device MAC"
       id: device_mac
       
+  # ===== WiFi SSID & Password (đang kết nối) =====
+  - platform: template
+    id: wifi_ssid_text
+    name: "WiFi SSID (STA)"
+    update_interval: 60s
+    lambda: |-
+      auto ssid = esphome::wifi_creds::get_wifi_ssid();
+      return { ssid.c_str() };
+
+  - platform: template
+    id: wifi_password_text
+    name: "WiFi Password (STA)"
+    update_interval: 60s
+    lambda: |-
+      auto pwd = esphome::wifi_creds::get_wifi_password();
+      return { pwd.c_str() };
+
   # BMS0 text sensors
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
