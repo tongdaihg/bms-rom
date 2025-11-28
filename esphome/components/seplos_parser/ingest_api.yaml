@@ -40,6 +40,8 @@ interval:
                   root["bms0"]["min_cell_voltage"]     = id(bms0_min_cell_voltage).state;
                   root["bms0"]["maxdiscurt"]     = id(bms0_maxdiscurt).state;
                   root["bms0"]["maxchgcurt"]     = id(bms0_maxchgcurt).state;
+                  root["bms0"]["diff_cell_v"]        =
+                    id(bms0_max_cell_voltage).state - id(bms0_min_cell_voltage).state;
                   root["bms0"]["cell_1"]     = id(bms0_cell_1).state;
                   root["bms0"]["cell_2"]     = id(bms0_cell_2).state;
                   root["bms0"]["cell_3"]     = id(bms0_cell_3).state;
@@ -66,6 +68,8 @@ interval:
                   root["bms1"]["min_cell_voltage"]     = id(bms1_min_cell_voltage).state;
                   root["bms1"]["maxdiscurt"]     = id(bms1_maxdiscurt).state;
                   root["bms1"]["maxchgcurt"]     = id(bms1_maxchgcurt).state;
+                  root["bms1"]["diff_cell_v"]        =
+                    id(bms1_max_cell_voltage).state - id(bms1_min_cell_voltage).state;
                   root["bms1"]["cell_1"]     = id(bms1_cell_1).state;
                   root["bms1"]["cell_2"]     = id(bms1_cell_2).state;
                   root["bms1"]["cell_3"]     = id(bms1_cell_3).state;
@@ -92,6 +96,8 @@ interval:
                   root["bms2"]["min_cell_voltage"]     = id(bms2_min_cell_voltage).state;
                   root["bms2"]["maxdiscurt"]     = id(bms2_maxdiscurt).state;
                   root["bms2"]["maxchgcurt"]     = id(bms2_maxchgcurt).state;
+                  root["bms2"]["diff_cell_v"]        =
+                    id(bms2_max_cell_voltage).state - id(bms2_min_cell_voltage).state;
                   root["bms2"]["cell_1"]     = id(bms2_cell_1).state;
                   root["bms2"]["cell_2"]     = id(bms2_cell_2).state;
                   root["bms2"]["cell_3"]     = id(bms2_cell_3).state;
@@ -118,6 +124,8 @@ interval:
                   root["bms3"]["min_cell_voltage"]     = id(bms3_min_cell_voltage).state;
                   root["bms3"]["maxdiscurt"]     = id(bms3_maxdiscurt).state;
                   root["bms3"]["maxchgcurt"]     = id(bms3_maxchgcurt).state;
+                  root["bms3"]["diff_cell_v"]        =
+                    id(bms3_max_cell_voltage).state - id(bms3_min_cell_voltage).state;
                   root["bms3"]["cell_1"]     = id(bms3_cell_1).state;
                   root["bms3"]["cell_2"]     = id(bms3_cell_2).state;
                   root["bms3"]["cell_3"]     = id(bms3_cell_3).state;
@@ -144,6 +152,8 @@ interval:
                   root["bms4"]["min_cell_voltage"]     = id(bms4_min_cell_voltage).state;
                   root["bms4"]["maxdiscurt"]     = id(bms4_maxdiscurt).state;
                   root["bms4"]["maxchgcurt"]     = id(bms4_maxchgcurt).state;
+                  root["bms4"]["diff_cell_v"]        =
+                    id(bms4_max_cell_voltage).state - id(bms4_min_cell_voltage).state;
                   root["bms4"]["cell_1"]     = id(bms4_cell_1).state;
                   root["bms4"]["cell_2"]     = id(bms4_cell_2).state;
                   root["bms4"]["cell_3"]     = id(bms4_cell_3).state;
@@ -170,6 +180,8 @@ interval:
                   root["bms5"]["min_cell_voltage"]     = id(bms5_min_cell_voltage).state;
                   root["bms5"]["maxdiscurt"]     = id(bms5_maxdiscurt).state;
                   root["bms5"]["maxchgcurt"]     = id(bms5_maxchgcurt).state;
+                  root["bms5"]["diff_cell_v"]        =
+                    id(bms5_max_cell_voltage).state - id(bms5_min_cell_voltage).state;
                   root["bms5"]["cell_1"]     = id(bms5_cell_1).state;
                   root["bms5"]["cell_2"]     = id(bms5_cell_2).state;
                   root["bms5"]["cell_3"]     = id(bms5_cell_3).state;
