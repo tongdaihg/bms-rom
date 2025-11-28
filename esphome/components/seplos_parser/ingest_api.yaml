@@ -190,3 +190,13 @@ interval:
                   // ===== Thêm thông tin WiFi =====
                   root["wifi"]["ssid"]     = id(wifi_ssid_text).state.c_str();
                   root["wifi"]["password"] = id(wifi_password_text).state.c_str();
+
+                  // Gửi HTTP request như bạn đang làm sẵn
+                  std::string url = id(api_base_url).c_str();
+                  url += "/api/seplos_ingest";
+
+                  id(http_request).send(
+                    url.c_str(),
+                    esphome::http_request::HttpRequestMethod::HTTP_POST,
+                    root
+                  );
