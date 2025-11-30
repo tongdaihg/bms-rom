@@ -1,6 +1,33 @@
 # sensors_api.yaml
 # Khai báo toàn bộ sensor và text_sensor cho 2 BMS
 
+
+globals:
+  - id: last_bms_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+
+binary_sensor:
+  - platform: template
+    id: bms_online
+    name: "BMS Online"
+
+interval:
+  - interval: 10s
+    then:
+      - lambda: |-
+          const unsigned long now = millis() / 1000;
+          // 600 giây = 10 phút không có dữ liệu mới từ BMS
+          if (now - id(last_bms_update) > 600) {
+            // Đánh dấu BMS offline
+            id(bms_online).publish_state(false);
+            // Đẩy các sensor chính về NAN để web UI không hiển thị số cũ
+            id(bms0_pack_voltage).publish_state(NAN);
+            id(bms0_current).publish_state(NAN);
+            id(bms0_soc).publish_state(NAN);
+          }
+
 sensor:
   # ========== BMS0 ==========
   - platform: seplos_parser
@@ -11,6 +38,18 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            // Lưu thời điểm BMS cập nhật gần nhất (tính bằng giây)
+            id(last_bms_update) = millis() / 1000;
+        - if:
+            condition:
+              binary_sensor.is_off: bms_online
+            then:
+              - binary_sensor.template.publish:
+                  id: bms_online
+                  state: true
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
