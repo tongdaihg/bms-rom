@@ -3,30 +3,30 @@
 
 
 globals:
-  - id: last_bms_update
+  - id: bms0_last_update
     type: unsigned long
     restore_value: no
     initial_value: '0'
-
-binary_sensor:
-  - platform: template
-    id: bms_online
-    name: "BMS Online"
-
-interval:
-  - interval: 10s
-    then:
-      - lambda: |-
-          const unsigned long now = millis() / 1000;
-          // 600 giây = 10 phút không có dữ liệu mới từ BMS
-          if (now - id(last_bms_update) > 600) {
-            // Đánh dấu BMS offline
-            id(bms_online).publish_state(false);
-            // Đẩy các sensor chính về NAN để web UI không hiển thị số cũ
-            id(bms0_pack_voltage).publish_state(NAN);
-            id(bms0_current).publish_state(NAN);
-            id(bms0_soc).publish_state(NAN);
-          }
+  - id: bms1_last_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: bms2_last_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: bms3_last_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: bms4_last_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
+  - id: bms5_last_update
+    type: unsigned long
+    restore_value: no
+    initial_value: '0'
 
 sensor:
   # ========== BMS0 ==========
@@ -41,15 +41,7 @@ sensor:
     on_value:
       then:
         - lambda: |-
-            // Lưu thời điểm BMS cập nhật gần nhất (tính bằng giây)
-            id(last_bms_update) = millis() / 1000;
-        - if:
-            condition:
-              binary_sensor.is_off: bms_online
-            then:
-              - binary_sensor.template.publish:
-                  id: bms_online
-                  state: true
+            id(bms0_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -395,6 +387,10 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            id(bms1_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -740,6 +736,10 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            id(bms2_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -1085,6 +1085,10 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            id(bms3_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -1430,6 +1434,10 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            id(bms4_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -1774,6 +1782,10 @@ sensor:
     accuracy_decimals: 2
     filters:
       - throttle: ${time}s
+    on_value:
+      then:
+        - lambda: |-
+            id(bms5_last_update) = millis() / 1000;
 
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
@@ -2291,3 +2303,69 @@ text_sensor:
   - platform: seplos_parser
     seplos_parser_id: seplos_v3
     name: bms5 active_protections
+
+  - platform: template
+    id: bms0_last_update_sec
+    name: "bms0 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms0_last_update) == 0) return NAN;
+      return (float)(now - id(bms0_last_update));
+
+  - platform: template
+    id: bms1_last_update_sec
+    name: "bms1 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms1_last_update) == 0) return NAN;
+      return (float)(now - id(bms1_last_update));
+
+  - platform: template
+    id: bms2_last_update_sec
+    name: "bms2 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms2_last_update) == 0) return NAN;
+      return (float)(now - id(bms2_last_update));
+
+  - platform: template
+    id: bms3_last_update_sec
+    name: "bms3 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms3_last_update) == 0) return NAN;
+      return (float)(now - id(bms3_last_update));
+
+  - platform: template
+    id: bms4_last_update_sec
+    name: "bms4 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms4_last_update) == 0) return NAN;
+      return (float)(now - id(bms4_last_update));
+
+  - platform: template
+    id: bms5_last_update_sec
+    name: "bms5 last_update_sec"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    update_interval: 10s
+    lambda: |-
+      const unsigned long now = millis() / 1000;
+      if (id(bms5_last_update) == 0) return NAN;
+      return (float)(now - id(bms5_last_update));
