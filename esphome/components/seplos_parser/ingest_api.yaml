@@ -58,7 +58,7 @@ interval:
                   return id(api_base_url) + "/api/ingest.php";
                 request_headers:
                   Content-Type: application/json
-                json: |-
+                json: !lambda |-
                   // Global API key + MAC
                   root["api_key"] = id(api_key);
                   root["mac"] = id(device_mac).state;
