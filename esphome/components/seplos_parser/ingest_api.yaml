@@ -41,7 +41,8 @@ interval:
         wifi.connected: null
       then:
       - http_request.post:
-          url: !lambda 'return id(api_base_url) + "/api/ingest.php";'
+          url: !lambda |-
+            return id(api_base_url) + "/api/ingest.php";
           request_headers:
             Content-Type: application/json
           json: "// Global API key + MAC\nroot[\"api_key\"] = id(api_key);\nroot[\"\
