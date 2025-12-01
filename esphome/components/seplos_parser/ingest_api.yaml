@@ -1,261 +1,348 @@
+# ingest_api.yaml
+# Đẩy dữ liệu BMS0..BMS5 lên webserver bằng global API key
+
 globals:
-- id: api_base_url
-  type: std::string
-  initial_value: '"http://192.168.1.17"'
-- id: api_key
-  type: std::string
-  initial_value: '"solarhagiang"'
-- id: bms0_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
-- id: bms1_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
-- id: bms2_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
-- id: bms3_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
-- id: bms4_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
-- id: bms5_last_update
-  type: uint32_t
-  restore_value: false
-  initial_value: '0'
+  - id: api_base_url
+    type: std::string
+    initial_value: '"http://192.168.1.17"'   # đổi IP webserver tại đây
+
+  - id: api_key
+    type: std::string
+    initial_value: '"solarhagiang"'          # trùng với webserver
+
+  # Thời điểm cuối cùng nhận dữ liệu MỚI từ từng BMS (theo millis())
+  - id: bms0_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: bms1_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: bms2_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: bms3_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: bms4_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
+  - id: bms5_last_update
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
 http_request:
-  useragent: 6-pack-pin
+  useragent: "6-pack-pin"
   timeout: 10s
   verify_ssl: false
+
 interval:
-- interval: 300s
-  then:
-  - if:
-      condition:
-        wifi.connected: null
-      then:
-      - http_request.post:
-          url: !lambda |-
-            return id(api_base_url) + "/api/ingest.php";
-          request_headers:
-            Content-Type: application/json
-          json: "// Global API key + MAC\nroot[\"api_key\"] = id(api_key);\nroot[\"\
-            mac\"] = id(device_mac).state;\nroot[\"device_ip\"] = id(device_ip).state;\n\
-            const uint32_t now = millis();\nconst uint32_t STALE_MS = 300000UL;  //\
-            \ 5 phút = 300.000 ms\nbool bms0_stale = true;\nif (id(bms0_last_update)\
-            \ > 0) {\n  uint32_t diff0 = now - id(bms0_last_update);\n  bms0_stale\
-            \ = diff0 > STALE_MS;\n}\nif (bms0_stale) {\n  root[\"bms0\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms0\"][\"online\"] = true;\n  root[\"\
-            bms0\"][\"pack_voltage\"]       = id(bms0_pack_voltage).state;\n  root[\"\
-            bms0\"][\"current\"]            = id(bms0_current).state;\n  root[\"bms0\"\
-            ][\"bms0_cycle_count\"]   = id(bms0_cycle_count).state;\n  root[\"bms0\"\
-            ][\"remaining_capacity\"] = id(bms0_remaining_capacity).state;\n  root[\"\
-            bms0\"][\"total_capacity\"]     = id(bms0_total_capacity).state;\n  root[\"\
-            bms0\"][\"max_cell_voltage\"]     = id(bms0_max_cell_voltage).state;\n\
-            \  root[\"bms0\"][\"min_cell_voltage\"]     = id(bms0_min_cell_voltage).state;\n\
-            \  root[\"bms0\"][\"maxdiscurt\"]     = id(bms0_maxdiscurt).state;\n \
-            \ root[\"bms0\"][\"maxchgcurt\"]     = id(bms0_maxchgcurt).state;\n  root[\"\
-            bms0\"][\"average_cell_voltage\"] = id(bms0_average_cell_voltage).state;\n\
-            \  root[\"bms0\"][\"average_cell_temp\"]    = id(bms0_average_cell_temp).state;\n\
-            \  root[\"bms0\"][\"system_status\"]           = id(bms0_system_status).state;\n\
-            \  root[\"bms0\"][\"cell_temperature_alarms\"] = id(bms0_cell_temperature_alarms).state;\n\
-            \  root[\"bms0\"][\"cell_voltage_alarms\"]     = id(bms0_cell_voltage_alarms).state;\n\
-            \  root[\"bms0\"][\"FET_status\"]              = id(bms0_fet_status).state;\n\
-            \  root[\"bms0\"][\"active_alarms\"]           = id(bms0_active_alarms).state;\n\
-            \  root[\"bms0\"][\"active_protections\"]      = id(bms0_active_protections).state;\n\
-            \  root[\"bms0\"][\"diff_cell_v\"]        =\n    id(bms0_max_cell_voltage).state\
-            \ - id(bms0_min_cell_voltage).state;\n  root[\"bms0\"][\"cell_1\"]   \
-            \  = id(bms0_cell_1).state;\n  root[\"bms0\"][\"cell_2\"]     = id(bms0_cell_2).state;\n\
-            \  root[\"bms0\"][\"cell_3\"]     = id(bms0_cell_3).state;\n  root[\"\
-            bms0\"][\"cell_4\"]     = id(bms0_cell_4).state;\n  root[\"bms0\"][\"\
-            cell_5\"]     = id(bms0_cell_5).state;\n  root[\"bms0\"][\"cell_6\"] \
-            \    = id(bms0_cell_6).state;\n  root[\"bms0\"][\"cell_7\"]     = id(bms0_cell_7).state;\n\
-            \  root[\"bms0\"][\"cell_8\"]     = id(bms0_cell_8).state;\n  root[\"\
-            bms0\"][\"cell_9\"]     = id(bms0_cell_9).state;\n  root[\"bms0\"][\"\
-            cell_10\"]     = id(bms0_cell_10).state;\n  root[\"bms0\"][\"cell_11\"\
-            ]     = id(bms0_cell_11).state;\n  root[\"bms0\"][\"cell_12\"]     = id(bms0_cell_12).state;\n\
-            \  root[\"bms0\"][\"cell_13\"]     = id(bms0_cell_13).state;\n  root[\"\
-            bms0\"][\"cell_14\"]     = id(bms0_cell_14).state;\n  root[\"bms0\"][\"\
-            cell_15\"]     = id(bms0_cell_15).state;\n  root[\"bms0\"][\"cell_16\"\
-            ]     = id(bms0_cell_16).state;\n\n\n}\nbool bms1_stale = true;\nif (id(bms1_last_update)\
-            \ > 0) {\n  uint32_t diff1 = now - id(bms1_last_update);\n  bms1_stale\
-            \ = diff1 > STALE_MS;\n}\nif (bms1_stale) {\n  root[\"bms1\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms1\"][\"online\"] = true;\n  root[\"\
-            bms1\"][\"pack_voltage\"]       = id(bms1_pack_voltage).state;\n  root[\"\
-            bms1\"][\"current\"]            = id(bms1_current).state;\n  root[\"bms1\"\
-            ][\"bms1_cycle_count\"]   = id(bms1_cycle_count).state;\n  root[\"bms1\"\
-            ][\"remaining_capacity\"] = id(bms1_remaining_capacity).state;\n  root[\"\
-            bms1\"][\"total_capacity\"]     = id(bms1_total_capacity).state;\n  root[\"\
-            bms1\"][\"max_cell_voltage\"]     = id(bms1_max_cell_voltage).state;\n\
-            \  root[\"bms1\"][\"min_cell_voltage\"]     = id(bms1_min_cell_voltage).state;\n\
-            \  root[\"bms1\"][\"maxdiscurt\"]     = id(bms1_maxdiscurt).state;\n \
-            \ root[\"bms1\"][\"maxchgcurt\"]     = id(bms1_maxchgcurt).state;\n  root[\"\
-            bms1\"][\"average_cell_voltage\"] = id(bms1_average_cell_voltage).state;\n\
-            \  root[\"bms1\"][\"average_cell_temp\"]    = id(bms1_average_cell_temp).state;\n\
-            \  root[\"bms1\"][\"system_status\"]           = id(bms1_system_status).state;\n\
-            \  root[\"bms1\"][\"cell_temperature_alarms\"] = id(bms1_cell_temperature_alarms).state;\n\
-            \  root[\"bms1\"][\"cell_voltage_alarms\"]     = id(bms1_cell_voltage_alarms).state;\n\
-            \  root[\"bms1\"][\"FET_status\"]              = id(bms1_fet_status).state;\n\
-            \  root[\"bms1\"][\"active_alarms\"]           = id(bms1_active_alarms).state;\n\
-            \  root[\"bms1\"][\"active_protections\"]      = id(bms1_active_protections).state;\n\
-            \  root[\"bms1\"][\"diff_cell_v\"]        =\n    id(bms1_max_cell_voltage).state\
-            \ - id(bms1_min_cell_voltage).state;\n  root[\"bms1\"][\"cell_1\"]   \
-            \  = id(bms1_cell_1).state;\n  root[\"bms1\"][\"cell_2\"]     = id(bms1_cell_2).state;\n\
-            \  root[\"bms1\"][\"cell_3\"]     = id(bms1_cell_3).state;\n  root[\"\
-            bms1\"][\"cell_4\"]     = id(bms1_cell_4).state;\n  root[\"bms1\"][\"\
-            cell_5\"]     = id(bms1_cell_5).state;\n  root[\"bms1\"][\"cell_6\"] \
-            \    = id(bms1_cell_6).state;\n  root[\"bms1\"][\"cell_7\"]     = id(bms1_cell_7).state;\n\
-            \  root[\"bms1\"][\"cell_8\"]     = id(bms1_cell_8).state;\n  root[\"\
-            bms1\"][\"cell_9\"]     = id(bms1_cell_9).state;\n  root[\"bms1\"][\"\
-            cell_10\"]     = id(bms1_cell_10).state;\n  root[\"bms1\"][\"cell_11\"\
-            ]     = id(bms1_cell_11).state;\n  root[\"bms1\"][\"cell_12\"]     = id(bms1_cell_12).state;\n\
-            \  root[\"bms1\"][\"cell_13\"]     = id(bms1_cell_13).state;\n  root[\"\
-            bms1\"][\"cell_14\"]     = id(bms1_cell_14).state;\n  root[\"bms1\"][\"\
-            cell_15\"]     = id(bms1_cell_15).state;\n  root[\"bms1\"][\"cell_16\"\
-            ]     = id(bms1_cell_16).state;\n\n\n}\nbool bms2_stale = true;\nif (id(bms2_last_update)\
-            \ > 0) {\n  uint32_t diff2 = now - id(bms2_last_update);\n  bms2_stale\
-            \ = diff2 > STALE_MS;\n}\nif (bms2_stale) {\n  root[\"bms2\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms2\"][\"online\"] = true;\n  root[\"\
-            bms2\"][\"pack_voltage\"]       = id(bms2_pack_voltage).state;\n  root[\"\
-            bms2\"][\"current\"]            = id(bms2_current).state;\n  root[\"bms2\"\
-            ][\"bms2_cycle_count\"]   = id(bms2_cycle_count).state;\n  root[\"bms2\"\
-            ][\"remaining_capacity\"] = id(bms2_remaining_capacity).state;\n  root[\"\
-            bms2\"][\"total_capacity\"]     = id(bms2_total_capacity).state;\n  root[\"\
-            bms2\"][\"max_cell_voltage\"]     = id(bms2_max_cell_voltage).state;\n\
-            \  root[\"bms2\"][\"min_cell_voltage\"]     = id(bms2_min_cell_voltage).state;\n\
-            \  root[\"bms2\"][\"maxdiscurt\"]     = id(bms2_maxdiscurt).state;\n \
-            \ root[\"bms2\"][\"maxchgcurt\"]     = id(bms2_maxchgcurt).state;\n  root[\"\
-            bms2\"][\"average_cell_voltage\"] = id(bms2_average_cell_voltage).state;\n\
-            \  root[\"bms2\"][\"average_cell_temp\"]    = id(bms2_average_cell_temp).state;\n\
-            \  root[\"bms2\"][\"system_status\"]           = id(bms2_system_status).state;\n\
-            \  root[\"bms2\"][\"cell_temperature_alarms\"] = id(bms2_cell_temperature_alarms).state;\n\
-            \  root[\"bms2\"][\"cell_voltage_alarms\"]     = id(bms2_cell_voltage_alarms).state;\n\
-            \  root[\"bms2\"][\"FET_status\"]              = id(bms2_fet_status).state;\n\
-            \  root[\"bms2\"][\"active_alarms\"]           = id(bms2_active_alarms).state;\n\
-            \  root[\"bms2\"][\"active_protections\"]      = id(bms2_active_protections).state;\n\
-            \  root[\"bms2\"][\"diff_cell_v\"]        =\n    id(bms2_max_cell_voltage).state\
-            \ - id(bms2_min_cell_voltage).state;\n  root[\"bms2\"][\"cell_1\"]   \
-            \  = id(bms2_cell_1).state;\n  root[\"bms2\"][\"cell_2\"]     = id(bms2_cell_2).state;\n\
-            \  root[\"bms2\"][\"cell_3\"]     = id(bms2_cell_3).state;\n  root[\"\
-            bms2\"][\"cell_4\"]     = id(bms2_cell_4).state;\n  root[\"bms2\"][\"\
-            cell_5\"]     = id(bms2_cell_5).state;\n  root[\"bms2\"][\"cell_6\"] \
-            \    = id(bms2_cell_6).state;\n  root[\"bms2\"][\"cell_7\"]     = id(bms2_cell_7).state;\n\
-            \  root[\"bms2\"][\"cell_8\"]     = id(bms2_cell_8).state;\n  root[\"\
-            bms2\"][\"cell_9\"]     = id(bms2_cell_9).state;\n  root[\"bms2\"][\"\
-            cell_10\"]     = id(bms2_cell_10).state;\n  root[\"bms2\"][\"cell_11\"\
-            ]     = id(bms2_cell_11).state;\n  root[\"bms2\"][\"cell_12\"]     = id(bms2_cell_12).state;\n\
-            \  root[\"bms2\"][\"cell_13\"]     = id(bms2_cell_13).state;\n  root[\"\
-            bms2\"][\"cell_14\"]     = id(bms2_cell_14).state;\n  root[\"bms2\"][\"\
-            cell_15\"]     = id(bms2_cell_15).state;\n  root[\"bms2\"][\"cell_16\"\
-            ]     = id(bms2_cell_16).state;\n\n\n}\nbool bms3_stale = true;\nif (id(bms3_last_update)\
-            \ > 0) {\n  uint32_t diff3 = now - id(bms3_last_update);\n  bms3_stale\
-            \ = diff3 > STALE_MS;\n}\nif (bms3_stale) {\n  root[\"bms3\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms3\"][\"online\"] = true;\n  root[\"\
-            bms3\"][\"pack_voltage\"]       = id(bms3_pack_voltage).state;\n  root[\"\
-            bms3\"][\"current\"]            = id(bms3_current).state;\n  root[\"bms3\"\
-            ][\"bms3_cycle_count\"]   = id(bms3_cycle_count).state;\n  root[\"bms3\"\
-            ][\"remaining_capacity\"] = id(bms3_remaining_capacity).state;\n  root[\"\
-            bms3\"][\"total_capacity\"]     = id(bms3_total_capacity).state;\n  root[\"\
-            bms3\"][\"max_cell_voltage\"]     = id(bms3_max_cell_voltage).state;\n\
-            \  root[\"bms3\"][\"min_cell_voltage\"]     = id(bms3_min_cell_voltage).state;\n\
-            \  root[\"bms3\"][\"maxdiscurt\"]     = id(bms3_maxdiscurt).state;\n \
-            \ root[\"bms3\"][\"maxchgcurt\"]     = id(bms3_maxchgcurt).state;\n  root[\"\
-            bms3\"][\"average_cell_voltage\"] = id(bms3_average_cell_voltage).state;\n\
-            \  root[\"bms3\"][\"average_cell_temp\"]    = id(bms3_average_cell_temp).state;\n\
-            \  root[\"bms3\"][\"system_status\"]           = id(bms3_system_status).state;\n\
-            \  root[\"bms3\"][\"cell_temperature_alarms\"] = id(bms3_cell_temperature_alarms).state;\n\
-            \  root[\"bms3\"][\"cell_voltage_alarms\"]     = id(bms3_cell_voltage_alarms).state;\n\
-            \  root[\"bms3\"][\"FET_status\"]              = id(bms3_fet_status).state;\n\
-            \  root[\"bms3\"][\"active_alarms\"]           = id(bms3_active_alarms).state;\n\
-            \  root[\"bms3\"][\"active_protections\"]      = id(bms3_active_protections).state;\n\
-            \  root[\"bms3\"][\"diff_cell_v\"]        =\n    id(bms3_max_cell_voltage).state\
-            \ - id(bms3_min_cell_voltage).state;\n  root[\"bms3\"][\"cell_1\"]   \
-            \  = id(bms3_cell_1).state;\n  root[\"bms3\"][\"cell_2\"]     = id(bms3_cell_2).state;\n\
-            \  root[\"bms3\"][\"cell_3\"]     = id(bms3_cell_3).state;\n  root[\"\
-            bms3\"][\"cell_4\"]     = id(bms3_cell_4).state;\n  root[\"bms3\"][\"\
-            cell_5\"]     = id(bms3_cell_5).state;\n  root[\"bms3\"][\"cell_6\"] \
-            \    = id(bms3_cell_6).state;\n  root[\"bms3\"][\"cell_7\"]     = id(bms3_cell_7).state;\n\
-            \  root[\"bms3\"][\"cell_8\"]     = id(bms3_cell_8).state;\n  root[\"\
-            bms3\"][\"cell_9\"]     = id(bms3_cell_9).state;\n  root[\"bms3\"][\"\
-            cell_10\"]     = id(bms3_cell_10).state;\n  root[\"bms3\"][\"cell_11\"\
-            ]     = id(bms3_cell_11).state;\n  root[\"bms3\"][\"cell_12\"]     = id(bms3_cell_12).state;\n\
-            \  root[\"bms3\"][\"cell_13\"]     = id(bms3_cell_13).state;\n  root[\"\
-            bms3\"][\"cell_14\"]     = id(bms3_cell_14).state;\n  root[\"bms3\"][\"\
-            cell_15\"]     = id(bms3_cell_15).state;\n  root[\"bms3\"][\"cell_16\"\
-            ]     = id(bms3_cell_16).state;\n\n\n}\nbool bms4_stale = true;\nif (id(bms4_last_update)\
-            \ > 0) {\n  uint32_t diff4 = now - id(bms4_last_update);\n  bms4_stale\
-            \ = diff4 > STALE_MS;\n}\nif (bms4_stale) {\n  root[\"bms4\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms4\"][\"online\"] = true;\n  root[\"\
-            bms4\"][\"pack_voltage\"]       = id(bms4_pack_voltage).state;\n  root[\"\
-            bms4\"][\"current\"]            = id(bms4_current).state;\n  root[\"bms4\"\
-            ][\"bms4_cycle_count\"]   = id(bms4_cycle_count).state;\n  root[\"bms4\"\
-            ][\"remaining_capacity\"] = id(bms4_remaining_capacity).state;\n  root[\"\
-            bms4\"][\"total_capacity\"]     = id(bms4_total_capacity).state;\n  root[\"\
-            bms4\"][\"max_cell_voltage\"]     = id(bms4_max_cell_voltage).state;\n\
-            \  root[\"bms4\"][\"min_cell_voltage\"]     = id(bms4_min_cell_voltage).state;\n\
-            \  root[\"bms4\"][\"maxdiscurt\"]     = id(bms4_maxdiscurt).state;\n \
-            \ root[\"bms4\"][\"maxchgcurt\"]     = id(bms4_maxchgcurt).state;\n  root[\"\
-            bms4\"][\"average_cell_voltage\"] = id(bms4_average_cell_voltage).state;\n\
-            \  root[\"bms4\"][\"average_cell_temp\"]    = id(bms4_average_cell_temp).state;\n\
-            \  root[\"bms4\"][\"system_status\"]           = id(bms4_system_status).state;\n\
-            \  root[\"bms4\"][\"cell_temperature_alarms\"] = id(bms4_cell_temperature_alarms).state;\n\
-            \  root[\"bms4\"][\"cell_voltage_alarms\"]     = id(bms4_cell_voltage_alarms).state;\n\
-            \  root[\"bms4\"][\"FET_status\"]              = id(bms4_fet_status).state;\n\
-            \  root[\"bms4\"][\"active_alarms\"]           = id(bms4_active_alarms).state;\n\
-            \  root[\"bms4\"][\"active_protections\"]      = id(bms4_active_protections).state;\n\
-            \  root[\"bms4\"][\"diff_cell_v\"]        =\n    id(bms4_max_cell_voltage).state\
-            \ - id(bms4_min_cell_voltage).state;\n  root[\"bms4\"][\"cell_1\"]   \
-            \  = id(bms4_cell_1).state;\n  root[\"bms4\"][\"cell_2\"]     = id(bms4_cell_2).state;\n\
-            \  root[\"bms4\"][\"cell_3\"]     = id(bms4_cell_3).state;\n  root[\"\
-            bms4\"][\"cell_4\"]     = id(bms4_cell_4).state;\n  root[\"bms4\"][\"\
-            cell_5\"]     = id(bms4_cell_5).state;\n  root[\"bms4\"][\"cell_6\"] \
-            \    = id(bms4_cell_6).state;\n  root[\"bms4\"][\"cell_7\"]     = id(bms4_cell_7).state;\n\
-            \  root[\"bms4\"][\"cell_8\"]     = id(bms4_cell_8).state;\n  root[\"\
-            bms4\"][\"cell_9\"]     = id(bms4_cell_9).state;\n  root[\"bms4\"][\"\
-            cell_10\"]     = id(bms4_cell_10).state;\n  root[\"bms4\"][\"cell_11\"\
-            ]     = id(bms4_cell_11).state;\n  root[\"bms4\"][\"cell_12\"]     = id(bms4_cell_12).state;\n\
-            \  root[\"bms4\"][\"cell_13\"]     = id(bms4_cell_13).state;\n  root[\"\
-            bms4\"][\"cell_14\"]     = id(bms4_cell_14).state;\n  root[\"bms4\"][\"\
-            cell_15\"]     = id(bms4_cell_15).state;\n  root[\"bms4\"][\"cell_16\"\
-            ]     = id(bms4_cell_16).state;\n\n\n}\nbool bms5_stale = true;\nif (id(bms5_last_update)\
-            \ > 0) {\n  uint32_t diff5 = now - id(bms5_last_update);\n  bms5_stale\
-            \ = diff5 > STALE_MS;\n}\nif (bms5_stale) {\n  root[\"bms5\"][\"online\"\
-            ] = false;\n} else {\n  root[\"bms5\"][\"online\"] = true;\n  root[\"\
-            bms5\"][\"pack_voltage\"]       = id(bms5_pack_voltage).state;\n  root[\"\
-            bms5\"][\"current\"]            = id(bms5_current).state;\n  root[\"bms5\"\
-            ][\"bms5_cycle_count\"]   = id(bms5_cycle_count).state;\n  root[\"bms5\"\
-            ][\"remaining_capacity\"] = id(bms5_remaining_capacity).state;\n  root[\"\
-            bms5\"][\"total_capacity\"]     = id(bms5_total_capacity).state;\n  root[\"\
-            bms5\"][\"max_cell_voltage\"]     = id(bms5_max_cell_voltage).state;\n\
-            \  root[\"bms5\"][\"min_cell_voltage\"]     = id(bms5_min_cell_voltage).state;\n\
-            \  root[\"bms5\"][\"maxdiscurt\"]     = id(bms5_maxdiscurt).state;\n \
-            \ root[\"bms5\"][\"maxchgcurt\"]     = id(bms5_maxchgcurt).state;\n  root[\"\
-            bms5\"][\"average_cell_voltage\"] = id(bms5_average_cell_voltage).state;\n\
-            \  root[\"bms5\"][\"average_cell_temp\"]    = id(bms5_average_cell_temp).state;\n\
-            \  root[\"bms5\"][\"system_status\"]           = id(bms5_system_status).state;\n\
-            \  root[\"bms5\"][\"cell_temperature_alarms\"] = id(bms5_cell_temperature_alarms).state;\n\
-            \  root[\"bms5\"][\"cell_voltage_alarms\"]     = id(bms5_cell_voltage_alarms).state;\n\
-            \  root[\"bms5\"][\"FET_status\"]              = id(bms5_fet_status).state;\n\
-            \  root[\"bms5\"][\"active_alarms\"]           = id(bms5_active_alarms).state;\n\
-            \  root[\"bms5\"][\"active_protections\"]      = id(bms5_active_protections).state;\n\
-            \  root[\"bms5\"][\"diff_cell_v\"]        =\n    id(bms5_max_cell_voltage).state\
-            \ - id(bms5_min_cell_voltage).state;\n  root[\"bms5\"][\"cell_1\"]   \
-            \  = id(bms5_cell_1).state;\n  root[\"bms5\"][\"cell_2\"]     = id(bms5_cell_2).state;\n\
-            \  root[\"bms5\"][\"cell_3\"]     = id(bms5_cell_3).state;\n  root[\"\
-            bms5\"][\"cell_4\"]     = id(bms5_cell_4).state;\n  root[\"bms5\"][\"\
-            cell_5\"]     = id(bms5_cell_5).state;\n  root[\"bms5\"][\"cell_6\"] \
-            \    = id(bms5_cell_6).state;\n  root[\"bms5\"][\"cell_7\"]     = id(bms5_cell_7).state;\n\
-            \  root[\"bms5\"][\"cell_8\"]     = id(bms5_cell_8).state;\n  root[\"\
-            bms5\"][\"cell_9\"]     = id(bms5_cell_9).state;\n  root[\"bms5\"][\"\
-            cell_10\"]     = id(bms5_cell_10).state;\n  root[\"bms5\"][\"cell_11\"\
-            ]     = id(bms5_cell_11).state;\n  root[\"bms5\"][\"cell_12\"]     = id(bms5_cell_12).state;\n\
-            \  root[\"bms5\"][\"cell_13\"]     = id(bms5_cell_13).state;\n  root[\"\
-            bms5\"][\"cell_14\"]     = id(bms5_cell_14).state;\n  root[\"bms5\"][\"\
-            cell_15\"]     = id(bms5_cell_15).state;\n  root[\"bms5\"][\"cell_16\"\
-            ]     = id(bms5_cell_16).state;\n\n}"
+  - interval: 300s
+    then:
+      - if:
+          condition:
+            wifi.connected:
+          then:
+            - http_request.post:
+                url: !lambda |-
+                  return id(api_base_url) + "/api/ingest.php";
+                request_headers:
+                  Content-Type: application/json
+                json: |-
+                  // Global API key + MAC
+                  root["api_key"] = id(api_key);
+                  root["mac"] = id(device_mac).state;
+                  root["device_ip"] = id(device_ip).state;
+                  const uint32_t now = millis();
+                  const uint32_t STALE_MS = 300000UL;  // 5 phút = 300.000 ms
+                  bool bms0_stale = true;
+                  if (id(bms0_last_update) > 0) {
+                    uint32_t diff0 = now - id(bms0_last_update);
+                    bms0_stale = diff0 > STALE_MS;
+                  }
+                  if (bms0_stale) {
+                    root["bms0"]["online"] = false;
+                  } else {
+                    root["bms0"]["online"] = true;
+                    root["bms0"]["pack_voltage"]       = id(bms0_pack_voltage).state;
+                    root["bms0"]["current"]            = id(bms0_current).state;
+                    root["bms0"]["bms0_cycle_count"]   = id(bms0_cycle_count).state;
+                    root["bms0"]["remaining_capacity"] = id(bms0_remaining_capacity).state;
+                    root["bms0"]["total_capacity"]     = id(bms0_total_capacity).state;
+                    root["bms0"]["max_cell_voltage"]     = id(bms0_max_cell_voltage).state;
+                    root["bms0"]["min_cell_voltage"]     = id(bms0_min_cell_voltage).state;
+                    root["bms0"]["maxdiscurt"]     = id(bms0_maxdiscurt).state;
+                    root["bms0"]["maxchgcurt"]     = id(bms0_maxchgcurt).state;
+                    root["bms0"]["average_cell_voltage"] = id(bms0_average_cell_voltage).state;
+                    root["bms0"]["average_cell_temp"]    = id(bms0_average_cell_temp).state;
+                    root["bms0"]["system_status"]           = id(bms0_system_status).state;
+                    root["bms0"]["cell_temperature_alarms"] = id(bms0_cell_temperature_alarms).state;
+                    root["bms0"]["cell_voltage_alarms"]     = id(bms0_cell_voltage_alarms).state;
+                    root["bms0"]["FET_status"]              = id(bms0_fet_status).state;
+                    root["bms0"]["active_alarms"]           = id(bms0_active_alarms).state;
+                    root["bms0"]["active_protections"]      = id(bms0_active_protections).state;
+                    root["bms0"]["diff_cell_v"]        =
+                      id(bms0_max_cell_voltage).state - id(bms0_min_cell_voltage).state;
+                    root["bms0"]["cell_1"]     = id(bms0_cell_1).state;
+                    root["bms0"]["cell_2"]     = id(bms0_cell_2).state;
+                    root["bms0"]["cell_3"]     = id(bms0_cell_3).state;
+                    root["bms0"]["cell_4"]     = id(bms0_cell_4).state;
+                    root["bms0"]["cell_5"]     = id(bms0_cell_5).state;
+                    root["bms0"]["cell_6"]     = id(bms0_cell_6).state;
+                    root["bms0"]["cell_7"]     = id(bms0_cell_7).state;
+                    root["bms0"]["cell_8"]     = id(bms0_cell_8).state;
+                    root["bms0"]["cell_9"]     = id(bms0_cell_9).state;
+                    root["bms0"]["cell_10"]     = id(bms0_cell_10).state;
+                    root["bms0"]["cell_11"]     = id(bms0_cell_11).state;
+                    root["bms0"]["cell_12"]     = id(bms0_cell_12).state;
+                    root["bms0"]["cell_13"]     = id(bms0_cell_13).state;
+                    root["bms0"]["cell_14"]     = id(bms0_cell_14).state;
+                    root["bms0"]["cell_15"]     = id(bms0_cell_15).state;
+                    root["bms0"]["cell_16"]     = id(bms0_cell_16).state;
+
+
+                  }
+                  bool bms1_stale = true;
+                  if (id(bms1_last_update) > 0) {
+                    uint32_t diff1 = now - id(bms1_last_update);
+                    bms1_stale = diff1 > STALE_MS;
+                  }
+                  if (bms1_stale) {
+                    root["bms1"]["online"] = false;
+                  } else {
+                    root["bms1"]["online"] = true;
+                    root["bms1"]["pack_voltage"]       = id(bms1_pack_voltage).state;
+                    root["bms1"]["current"]            = id(bms1_current).state;
+                    root["bms1"]["bms1_cycle_count"]   = id(bms1_cycle_count).state;
+                    root["bms1"]["remaining_capacity"] = id(bms1_remaining_capacity).state;
+                    root["bms1"]["total_capacity"]     = id(bms1_total_capacity).state;
+                    root["bms1"]["max_cell_voltage"]     = id(bms1_max_cell_voltage).state;
+                    root["bms1"]["min_cell_voltage"]     = id(bms1_min_cell_voltage).state;
+                    root["bms1"]["maxdiscurt"]     = id(bms1_maxdiscurt).state;
+                    root["bms1"]["maxchgcurt"]     = id(bms1_maxchgcurt).state;
+                    root["bms1"]["average_cell_voltage"] = id(bms1_average_cell_voltage).state;
+                    root["bms1"]["average_cell_temp"]    = id(bms1_average_cell_temp).state;
+                    root["bms1"]["system_status"]           = id(bms1_system_status).state;
+                    root["bms1"]["cell_temperature_alarms"] = id(bms1_cell_temperature_alarms).state;
+                    root["bms1"]["cell_voltage_alarms"]     = id(bms1_cell_voltage_alarms).state;
+                    root["bms1"]["FET_status"]              = id(bms1_fet_status).state;
+                    root["bms1"]["active_alarms"]           = id(bms1_active_alarms).state;
+                    root["bms1"]["active_protections"]      = id(bms1_active_protections).state;
+                    root["bms1"]["diff_cell_v"]        =
+                      id(bms1_max_cell_voltage).state - id(bms1_min_cell_voltage).state;
+                    root["bms1"]["cell_1"]     = id(bms1_cell_1).state;
+                    root["bms1"]["cell_2"]     = id(bms1_cell_2).state;
+                    root["bms1"]["cell_3"]     = id(bms1_cell_3).state;
+                    root["bms1"]["cell_4"]     = id(bms1_cell_4).state;
+                    root["bms1"]["cell_5"]     = id(bms1_cell_5).state;
+                    root["bms1"]["cell_6"]     = id(bms1_cell_6).state;
+                    root["bms1"]["cell_7"]     = id(bms1_cell_7).state;
+                    root["bms1"]["cell_8"]     = id(bms1_cell_8).state;
+                    root["bms1"]["cell_9"]     = id(bms1_cell_9).state;
+                    root["bms1"]["cell_10"]     = id(bms1_cell_10).state;
+                    root["bms1"]["cell_11"]     = id(bms1_cell_11).state;
+                    root["bms1"]["cell_12"]     = id(bms1_cell_12).state;
+                    root["bms1"]["cell_13"]     = id(bms1_cell_13).state;
+                    root["bms1"]["cell_14"]     = id(bms1_cell_14).state;
+                    root["bms1"]["cell_15"]     = id(bms1_cell_15).state;
+                    root["bms1"]["cell_16"]     = id(bms1_cell_16).state;
+
+
+                  }
+                  bool bms2_stale = true;
+                  if (id(bms2_last_update) > 0) {
+                    uint32_t diff2 = now - id(bms2_last_update);
+                    bms2_stale = diff2 > STALE_MS;
+                  }
+                  if (bms2_stale) {
+                    root["bms2"]["online"] = false;
+                  } else {
+                    root["bms2"]["online"] = true;
+                    root["bms2"]["pack_voltage"]       = id(bms2_pack_voltage).state;
+                    root["bms2"]["current"]            = id(bms2_current).state;
+                    root["bms2"]["bms2_cycle_count"]   = id(bms2_cycle_count).state;
+                    root["bms2"]["remaining_capacity"] = id(bms2_remaining_capacity).state;
+                    root["bms2"]["total_capacity"]     = id(bms2_total_capacity).state;
+                    root["bms2"]["max_cell_voltage"]     = id(bms2_max_cell_voltage).state;
+                    root["bms2"]["min_cell_voltage"]     = id(bms2_min_cell_voltage).state;
+                    root["bms2"]["maxdiscurt"]     = id(bms2_maxdiscurt).state;
+                    root["bms2"]["maxchgcurt"]     = id(bms2_maxchgcurt).state;
+                    root["bms2"]["average_cell_voltage"] = id(bms2_average_cell_voltage).state;
+                    root["bms2"]["average_cell_temp"]    = id(bms2_average_cell_temp).state;
+                    root["bms2"]["system_status"]           = id(bms2_system_status).state;
+                    root["bms2"]["cell_temperature_alarms"] = id(bms2_cell_temperature_alarms).state;
+                    root["bms2"]["cell_voltage_alarms"]     = id(bms2_cell_voltage_alarms).state;
+                    root["bms2"]["FET_status"]              = id(bms2_fet_status).state;
+                    root["bms2"]["active_alarms"]           = id(bms2_active_alarms).state;
+                    root["bms2"]["active_protections"]      = id(bms2_active_protections).state;
+                    root["bms2"]["diff_cell_v"]        =
+                      id(bms2_max_cell_voltage).state - id(bms2_min_cell_voltage).state;
+                    root["bms2"]["cell_1"]     = id(bms2_cell_1).state;
+                    root["bms2"]["cell_2"]     = id(bms2_cell_2).state;
+                    root["bms2"]["cell_3"]     = id(bms2_cell_3).state;
+                    root["bms2"]["cell_4"]     = id(bms2_cell_4).state;
+                    root["bms2"]["cell_5"]     = id(bms2_cell_5).state;
+                    root["bms2"]["cell_6"]     = id(bms2_cell_6).state;
+                    root["bms2"]["cell_7"]     = id(bms2_cell_7).state;
+                    root["bms2"]["cell_8"]     = id(bms2_cell_8).state;
+                    root["bms2"]["cell_9"]     = id(bms2_cell_9).state;
+                    root["bms2"]["cell_10"]     = id(bms2_cell_10).state;
+                    root["bms2"]["cell_11"]     = id(bms2_cell_11).state;
+                    root["bms2"]["cell_12"]     = id(bms2_cell_12).state;
+                    root["bms2"]["cell_13"]     = id(bms2_cell_13).state;
+                    root["bms2"]["cell_14"]     = id(bms2_cell_14).state;
+                    root["bms2"]["cell_15"]     = id(bms2_cell_15).state;
+                    root["bms2"]["cell_16"]     = id(bms2_cell_16).state;
+
+
+                  }
+                  bool bms3_stale = true;
+                  if (id(bms3_last_update) > 0) {
+                    uint32_t diff3 = now - id(bms3_last_update);
+                    bms3_stale = diff3 > STALE_MS;
+                  }
+                  if (bms3_stale) {
+                    root["bms3"]["online"] = false;
+                  } else {
+                    root["bms3"]["online"] = true;
+                    root["bms3"]["pack_voltage"]       = id(bms3_pack_voltage).state;
+                    root["bms3"]["current"]            = id(bms3_current).state;
+                    root["bms3"]["bms3_cycle_count"]   = id(bms3_cycle_count).state;
+                    root["bms3"]["remaining_capacity"] = id(bms3_remaining_capacity).state;
+                    root["bms3"]["total_capacity"]     = id(bms3_total_capacity).state;
+                    root["bms3"]["max_cell_voltage"]     = id(bms3_max_cell_voltage).state;
+                    root["bms3"]["min_cell_voltage"]     = id(bms3_min_cell_voltage).state;
+                    root["bms3"]["maxdiscurt"]     = id(bms3_maxdiscurt).state;
+                    root["bms3"]["maxchgcurt"]     = id(bms3_maxchgcurt).state;
+                    root["bms3"]["average_cell_voltage"] = id(bms3_average_cell_voltage).state;
+                    root["bms3"]["average_cell_temp"]    = id(bms3_average_cell_temp).state;
+                    root["bms3"]["system_status"]           = id(bms3_system_status).state;
+                    root["bms3"]["cell_temperature_alarms"] = id(bms3_cell_temperature_alarms).state;
+                    root["bms3"]["cell_voltage_alarms"]     = id(bms3_cell_voltage_alarms).state;
+                    root["bms3"]["FET_status"]              = id(bms3_fet_status).state;
+                    root["bms3"]["active_alarms"]           = id(bms3_active_alarms).state;
+                    root["bms3"]["active_protections"]      = id(bms3_active_protections).state;
+                    root["bms3"]["diff_cell_v"]        =
+                      id(bms3_max_cell_voltage).state - id(bms3_min_cell_voltage).state;
+                    root["bms3"]["cell_1"]     = id(bms3_cell_1).state;
+                    root["bms3"]["cell_2"]     = id(bms3_cell_2).state;
+                    root["bms3"]["cell_3"]     = id(bms3_cell_3).state;
+                    root["bms3"]["cell_4"]     = id(bms3_cell_4).state;
+                    root["bms3"]["cell_5"]     = id(bms3_cell_5).state;
+                    root["bms3"]["cell_6"]     = id(bms3_cell_6).state;
+                    root["bms3"]["cell_7"]     = id(bms3_cell_7).state;
+                    root["bms3"]["cell_8"]     = id(bms3_cell_8).state;
+                    root["bms3"]["cell_9"]     = id(bms3_cell_9).state;
+                    root["bms3"]["cell_10"]     = id(bms3_cell_10).state;
+                    root["bms3"]["cell_11"]     = id(bms3_cell_11).state;
+                    root["bms3"]["cell_12"]     = id(bms3_cell_12).state;
+                    root["bms3"]["cell_13"]     = id(bms3_cell_13).state;
+                    root["bms3"]["cell_14"]     = id(bms3_cell_14).state;
+                    root["bms3"]["cell_15"]     = id(bms3_cell_15).state;
+                    root["bms3"]["cell_16"]     = id(bms3_cell_16).state;
+
+
+                  }
+                  bool bms4_stale = true;
+                  if (id(bms4_last_update) > 0) {
+                    uint32_t diff4 = now - id(bms4_last_update);
+                    bms4_stale = diff4 > STALE_MS;
+                  }
+                  if (bms4_stale) {
+                    root["bms4"]["online"] = false;
+                  } else {
+                    root["bms4"]["online"] = true;
+                    root["bms4"]["pack_voltage"]       = id(bms4_pack_voltage).state;
+                    root["bms4"]["current"]            = id(bms4_current).state;
+                    root["bms4"]["bms4_cycle_count"]   = id(bms4_cycle_count).state;
+                    root["bms4"]["remaining_capacity"] = id(bms4_remaining_capacity).state;
+                    root["bms4"]["total_capacity"]     = id(bms4_total_capacity).state;
+                    root["bms4"]["max_cell_voltage"]     = id(bms4_max_cell_voltage).state;
+                    root["bms4"]["min_cell_voltage"]     = id(bms4_min_cell_voltage).state;
+                    root["bms4"]["maxdiscurt"]     = id(bms4_maxdiscurt).state;
+                    root["bms4"]["maxchgcurt"]     = id(bms4_maxchgcurt).state;
+                    root["bms4"]["average_cell_voltage"] = id(bms4_average_cell_voltage).state;
+                    root["bms4"]["average_cell_temp"]    = id(bms4_average_cell_temp).state;
+                    root["bms4"]["system_status"]           = id(bms4_system_status).state;
+                    root["bms4"]["cell_temperature_alarms"] = id(bms4_cell_temperature_alarms).state;
+                    root["bms4"]["cell_voltage_alarms"]     = id(bms4_cell_voltage_alarms).state;
+                    root["bms4"]["FET_status"]              = id(bms4_fet_status).state;
+                    root["bms4"]["active_alarms"]           = id(bms4_active_alarms).state;
+                    root["bms4"]["active_protections"]      = id(bms4_active_protections).state;
+                    root["bms4"]["diff_cell_v"]        =
+                      id(bms4_max_cell_voltage).state - id(bms4_min_cell_voltage).state;
+                    root["bms4"]["cell_1"]     = id(bms4_cell_1).state;
+                    root["bms4"]["cell_2"]     = id(bms4_cell_2).state;
+                    root["bms4"]["cell_3"]     = id(bms4_cell_3).state;
+                    root["bms4"]["cell_4"]     = id(bms4_cell_4).state;
+                    root["bms4"]["cell_5"]     = id(bms4_cell_5).state;
+                    root["bms4"]["cell_6"]     = id(bms4_cell_6).state;
+                    root["bms4"]["cell_7"]     = id(bms4_cell_7).state;
+                    root["bms4"]["cell_8"]     = id(bms4_cell_8).state;
+                    root["bms4"]["cell_9"]     = id(bms4_cell_9).state;
+                    root["bms4"]["cell_10"]     = id(bms4_cell_10).state;
+                    root["bms4"]["cell_11"]     = id(bms4_cell_11).state;
+                    root["bms4"]["cell_12"]     = id(bms4_cell_12).state;
+                    root["bms4"]["cell_13"]     = id(bms4_cell_13).state;
+                    root["bms4"]["cell_14"]     = id(bms4_cell_14).state;
+                    root["bms4"]["cell_15"]     = id(bms4_cell_15).state;
+                    root["bms4"]["cell_16"]     = id(bms4_cell_16).state;
+
+
+                  }
+                  bool bms5_stale = true;
+                  if (id(bms5_last_update) > 0) {
+                    uint32_t diff5 = now - id(bms5_last_update);
+                    bms5_stale = diff5 > STALE_MS;
+                  }
+                  if (bms5_stale) {
+                    root["bms5"]["online"] = false;
+                  } else {
+                    root["bms5"]["online"] = true;
+                    root["bms5"]["pack_voltage"]       = id(bms5_pack_voltage).state;
+                    root["bms5"]["current"]            = id(bms5_current).state;
+                    root["bms5"]["bms5_cycle_count"]   = id(bms5_cycle_count).state;
+                    root["bms5"]["remaining_capacity"] = id(bms5_remaining_capacity).state;
+                    root["bms5"]["total_capacity"]     = id(bms5_total_capacity).state;
+                    root["bms5"]["max_cell_voltage"]     = id(bms5_max_cell_voltage).state;
+                    root["bms5"]["min_cell_voltage"]     = id(bms5_min_cell_voltage).state;
+                    root["bms5"]["maxdiscurt"]     = id(bms5_maxdiscurt).state;
+                    root["bms5"]["maxchgcurt"]     = id(bms5_maxchgcurt).state;
+                    root["bms5"]["average_cell_voltage"] = id(bms5_average_cell_voltage).state;
+                    root["bms5"]["average_cell_temp"]    = id(bms5_average_cell_temp).state;
+                    root["bms5"]["system_status"]           = id(bms5_system_status).state;
+                    root["bms5"]["cell_temperature_alarms"] = id(bms5_cell_temperature_alarms).state;
+                    root["bms5"]["cell_voltage_alarms"]     = id(bms5_cell_voltage_alarms).state;
+                    root["bms5"]["FET_status"]              = id(bms5_fet_status).state;
+                    root["bms5"]["active_alarms"]           = id(bms5_active_alarms).state;
+                    root["bms5"]["active_protections"]      = id(bms5_active_protections).state;
+                    root["bms5"]["diff_cell_v"]        =
+                      id(bms5_max_cell_voltage).state - id(bms5_min_cell_voltage).state;
+                    root["bms5"]["cell_1"]     = id(bms5_cell_1).state;
+                    root["bms5"]["cell_2"]     = id(bms5_cell_2).state;
+                    root["bms5"]["cell_3"]     = id(bms5_cell_3).state;
+                    root["bms5"]["cell_4"]     = id(bms5_cell_4).state;
+                    root["bms5"]["cell_5"]     = id(bms5_cell_5).state;
+                    root["bms5"]["cell_6"]     = id(bms5_cell_6).state;
+                    root["bms5"]["cell_7"]     = id(bms5_cell_7).state;
+                    root["bms5"]["cell_8"]     = id(bms5_cell_8).state;
+                    root["bms5"]["cell_9"]     = id(bms5_cell_9).state;
+                    root["bms5"]["cell_10"]     = id(bms5_cell_10).state;
+                    root["bms5"]["cell_11"]     = id(bms5_cell_11).state;
+                    root["bms5"]["cell_12"]     = id(bms5_cell_12).state;
+                    root["bms5"]["cell_13"]     = id(bms5_cell_13).state;
+                    root["bms5"]["cell_14"]     = id(bms5_cell_14).state;
+                    root["bms5"]["cell_15"]     = id(bms5_cell_15).state;
+                    root["bms5"]["cell_16"]     = id(bms5_cell_16).state;
+
+                  }
