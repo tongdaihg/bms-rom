@@ -1,39 +1,6 @@
 # sensors_api.yaml
 # Khai báo toàn bộ sensor và text_sensor cho 2 BMS
 
-globals:
-  # Thời điểm cuối cùng nhận dữ liệu MỚI từ từng BMS (theo millis())
-  - id: bms0_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: bms1_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: bms2_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: bms3_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: bms4_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-  - id: bms5_last_update
-    type: uint32_t
-    restore_value: no
-    initial_value: '0'
-
-
 sensor:
   # ========== BMS0 ==========
   - platform: seplos_parser
