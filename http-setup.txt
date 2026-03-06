@@ -1,0 +1,71 @@
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+sudo apt install -y apache2
+sudo systemctl enable --now apache2
+sudo apt install -y ufw
+sudo apt install -y nano
+sudo ufw allow OpenSSH
+sudo ufw allow 22/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 80/tcp
+sudo ufw enable
+sudo apt install -y dnsutils
+sudo apt install -y php libapache2-mod-php php-mysql
+sudo systemctl restart apache2
+sudo apt install -y mariadb-server
+sudo systemctl enable --now mariadb
+sudo mysql_secure_installation
+sudo mysql
+
+=========
+CREATE USER 'chuongnv'@'localhost' IDENTIFIED BY '3vmlkH!zTju5hh7v';
+GRANT ALL PRIVILEGES ON *.* TO 'chuongnv'@'localhost' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EXIT;
+======================
+sudo apt install -y phpmyadmin
+sudo ufw allow "Apache Full"
+
+sudo apt install -y snapd
+sudo snap install core
+sudo snap refresh core
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+
+sudo nano /etc/apache2/sites-available/solarhagiang.vn.conf
+================
+<VirtualHost *:80>
+    ServerName solarhagiang.vn
+    ServerAlias www.solarhagiang.vn
+
+    DocumentRoot /var/www/solarhagiang.vn/public_html
+    <Directory /var/www/solarhagiang.vn/public_html>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/solarhagiang.vn_error.log
+    CustomLog ${APACHE_LOG_DIR}/solarhagiang.vn_access.log combined
+</VirtualHost>
+==================
+
+sudo mkdir -p /var/www/solarhagiang.vn/public_html
+sudo chown -R www-data:www-data /var/www/solarhagiang.vn
+echo "OK solarhagiang.vn" | sudo tee /var/www/solarhagiang.vn/public_html/index.html
+
+sudo a2ensite solarhagiang.vn.conf
+sudo a2dissite 000-default.conf
+sudo apache2ctl configtest
+sudo systemctl reload apache2
+sudo certbot --apache -d solarhagiang.vn -d www.solarhagiang.vn
+sudo certbot renew --dry-run
+======================
+
+Nâng dung lượng upload trên file ini
+/etc/php/8.3/apache2\php.ini
+upload_max_filesize = 20M
+max_execution_time = 300
+max_input_time = 300
+memory_limit = 256M
+
+vào config.php thêm dòng này
+define('FS_METHOD', 'direct');
