@@ -4,7 +4,7 @@
 globals:
   - id: api_base_url
     type: std::string
-    initial_value: '"http://192.168.1.17"'   # đổi IP webserver tại đây
+    initial_value: '"http://192.168.1.19"'   # đổi IP webserver tại đây
 
   - id: api_key
     type: std::string
